@@ -584,16 +584,19 @@ function viewToday(){
   const streak=calcStreak();
   const gd=goalDate();
   const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+  const closeT=day.rows.find(r=>r.id==='close').t;
+  const missed=check.filter(r=>!lg.done[r.id]&&r.t+60<nm&&r!==next);
+  const missedHtml=missed.length?`<div style="margin-top:14px;padding-top:12px;border-top:1px solid color-mix(in srgb,var(--accent) 20%,transparent)"><div class="tiny muted" style="margin-bottom:8px">Ate these earlier? Tap to check them off.</div><div class="pills" style="margin:0">${missed.map(r=>`<button class="chip" style="height:32px;padding:0 12px" data-a="check" data-k="${key}" data-id="${r.id}">+ ${esc(r.label||r.title)}</button>`).join('')}</div></div>`:'';
   let hero;
   if(next){
     hero=`<div class="card hero">
       <div class="when">${next.t<=nm?'Now':'Up next'} · ${tfmt(next.t)}${next.label?` · ${next.label}`:''}</div>
       <h2>${esc(next.title)}</h2>
-      <div style="margin-top:8px">${detail(next,key,true)}</div></div>`;
+      <div style="margin-top:8px">${detail(next,key,true)}</div>${missedHtml}</div>`;
   } else if(allDone){
     hero=`<div class="card hero"><div class="when">All done</div><h2>You nailed today.</h2><p class="muted small" style="margin:6px 0 0">Kitchen’s closed — water or herbal tea only. See you tomorrow.</p></div>`;
   } else {
-    hero=`<div class="card hero"><div class="when">Kitchen closed · ${tfmt(day.rows.find(r=>r.id==='close').t)}</div><h2>Rest up.</h2><p class="muted small" style="margin:6px 0 0">Anything not checked off? Tap it below so your numbers stay right.</p></div>`;
+    hero=`<div class="card hero"><div class="when">Kitchen closed · ${tfmt(day.rows.find(r=>r.id==='close').t)}</div><h2>Rest up.</h2><p class="muted small" style="margin:6px 0 0">Water or herbal tea only from here.</p>${missedHtml}</div>`;
   }
   const bar=(k,label,color)=>`<div><div class="lbl"><span><i class="dot" style="background:${color}"></i>${label}</span></div><div class="bar"><i style="width:${Math.min(100,eaten[k]/tg[k]*100)}%;background:${color}"></i></div><div class="tiny muted" style="margin-top:6px"><b>${Math.round(eaten[k])}</b> / ${tg[k]}g</div></div>`;
   return `
@@ -614,7 +617,66 @@ function viewToday(){
   <h2 style="margin:22px 0 0">Today’s plan</h2>
   <p class="small muted" style="margin:2px 0 0">Tap a meal to see exactly what to measure.</p>
   ${timeline(day,true,nowRow)}
-  <p class="tiny muted" style="text-align:center">Planned total: ${fmtN(day.totals.cal)} cal · ${Math.round(day.totals.p)}g protein · ${Math.round(day.totals.c)}g carbs · ${Math.round(day.totals.f)}g fat</p>`;
+  <p class="tiny muted" style="text-align:center">Planned total: ${fmtN(day.totals.cal)} cal · ${Math.round(day.totals.p)}g protein · ${Math.round(day.totals.c)}g carbs · ${Math.round(day.totals.f)}g fat</p>
+  <button class="btn block" data-a="copyDay" data-k="${key}">Copy today’s list for my macro app</button>`;
+}
+function dayText(day){
+  const d=pKey(day.key), out=[`${DOW[d.getDay()]}, ${fmtDate(d)}`];
+  for(const r of day.rows) if(r.items){
+    out.push('',`${tfmt(r.t)} · ${r.label&&r.type==='meal'?r.label+' — ':''}${r.title}`);
+    for(const i of r.items){ if(F[i.fid].herb||(i.fid==='water')) continue; const a=amt(i.fid,i.q);
+      out.push(`• ${F[i.fid].n}: ${a.main}${a.sub&&/g$|ml$|oz/.test(a.sub)&&!/cup$/.test(a.sub)?` (${a.sub})`:''}`); }
+  }
+  out.push('',`Total: ${fmtN(day.totals.cal)} cal · P ${Math.round(day.totals.p)}g · C ${Math.round(day.totals.c)}g · F ${Math.round(day.totals.f)}g`);
+  return out.join('\n');
+}
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); return true; }catch(e){
+    const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    let ok=false; try{ok=document.execCommand('copy');}catch(_){} ta.remove(); return ok; }
+}
+async function shareText(t,title){
+  if(navigator.share){ try{ await navigator.share({title,text:t}); return 'shared'; }catch(e){ if(e.name==='AbortError') return 'cancel'; } }
+  return (await copyText(t))?'copied':'fail';
+}
+const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+async function saveFile(name,type,text,openInstead){
+  const blob=new Blob([text],{type});
+  if(!openInstead){ const file=new File([blob],name,{type});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file]}); return; }catch(e){ if(e.name==='AbortError') return; } } }
+  const url=URL.createObjectURL(blob);
+  if(openInstead&&isIOS()){ location.href=url; return; } // iOS hands .ics straight to Calendar
+  const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},2000);
+}
+/* Calendar reminders: one repeating daily event per meal, alert at meal time */
+function mealIcs(){
+  const T=schedule(), start=addDays(today(),1), ds=dKey(start).replace(/-/g,'');
+  const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  const ev=[[T.b,'Breakfast + coffee','Within an hour of waking. 30 g+ protein.'],...(S.early?[[T.s1,'Morning snack','Small and low-carb.']]:[]),
+    [T.l,'Lunch','Carbs come in now.'],[T.adrenal,'Adrenal cocktail','1 lime + coconut water + pinch of sea salt.'],
+    [T.s2,'Protein shake + fruit','Water, A2 milk, Prime Protein.'],[T.d,'Dinner','Finish by '+tfmt(T.close)+'.'],[T.close,'Kitchen closed','Water or herbal tea only from here.']];
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Nourish//Meal plan//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  ev.forEach(([t,sum,desc],i)=>{const hh=String(Math.floor(t/60)).padStart(2,'0'),mm=String(t%60).padStart(2,'0');
+    L.push('BEGIN:VEVENT',`UID:nourish-${i}-${ds}@pgrooves.github.io`,`DTSTAMP:${stamp}`,`DTSTART:${ds}T${hh}${mm}00`,'DURATION:PT15M','RRULE:FREQ=DAILY',
+      `SUMMARY:${sum}`,`DESCRIPTION:${desc} Open Nourish to see exactly what to eat.`,'BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${sum}`,'TRIGGER:PT0M','END:VALARM','END:VEVENT');});
+  L.push('END:VCALENDAR'); return L.join('\r\n');
+}
+/* Smart check-in: compare her real trend to the forecast and suggest a calorie nudge */
+function checkIn(){
+  const since=S.lastAdjust||'0000';
+  const ws=[...S.weights].filter(x=>x.d>=since).sort((a,b)=>a.d<b.d?-1:1);
+  if(ws.length<3) return {status:'wait',need:3-ws.length};
+  const t0=pKey(ws[0].d), span=(pKey(ws[ws.length-1].d)-t0)/864e5;
+  if(span<21) return {status:'wait',days:Math.ceil(21-span)};
+  const recent=ws.filter(x=>(pKey(ws[ws.length-1].d)-pKey(x.d))/864e5<=35);
+  const pts=recent.map(x=>[(pKey(x.d)-t0)/864e5,x.w]), n=pts.length;
+  const mx=pts.reduce((a,p)=>a+p[0],0)/n, my=pts.reduce((a,p)=>a+p[1],0)/n;
+  const slope=pts.reduce((a,p)=>a+(p[0]-mx)*(p[1]-my),0)/(pts.reduce((a,p)=>a+(p[0]-mx)**2,0)||1);
+  const rate=-slope*7, pred=(burn(curWeight())-S.macros.cal)*7/3500;
+  if(rate<pred*.5&&rate<pred-.4) return {status:'slow',rate,pred,cal:Math.max(1600,S.macros.cal-150)};
+  if(rate>Math.max(2.5,pred*1.6)) return {status:'fast',rate,pred,cal:S.macros.cal+150};
+  return {status:'good',rate,pred};
 }
 
 function weekStart(off){const t=today();return addDays(t,-t.getDay()+7*off);}
@@ -638,7 +700,7 @@ function viewWeek(){
     for(let i=0;i<7;i++) for(const r of buildDay(dKey(addDays(ws,i))).rows) if(r.items) for(const it of r.items) tot[it.fid]=(tot[it.fid]||0)+it.q;
     const AIS=[['m','Meat & fish'],['v','Produce'],['d','Dairy & eggs'],['p','Pantry & other']];
     body=`<div class="seg" style="margin-top:0">${[[0,'This week'],[1,'Next week']].map(([k,l])=>`<button data-a="shopWeek" data-v="${k}" class="${UI.shopWeek===k?'on':''}">${l}</button>`).join('')}</div>
-    <p class="small muted" style="margin:0">${fmtDate(ws)} – ${fmtDate(addDays(ws,6))}. Amounts already match your portions.</p>
+    <div class="row between" style="gap:10px"><p class="small muted" style="margin:0">${fmtDate(ws)} – ${fmtDate(addDays(ws,6))}. Amounts already match your portions.</p><button class="btn" style="height:36px;padding:0 14px;flex:none" data-a="shareShop" data-w="${UI.shopWeek}">Share</button></div>
     ${AIS.map(([a,l])=>{const ids=Object.keys(tot).filter(f=>F[f].a===a).sort((x,y)=>F[x].n.localeCompare(F[y].n));
       if(!ids.length) return '';
       return `<div class="card"><h3>${l}</h3><ul class="list">${ids.map(f=>`<li class="${got[f]?'got':''}"><div class="grow"><div>${esc(F[f].n.replace(/, (cooked|baked)$/,''))}</div><div class="small muted">${buyText(f,tot[f])}</div></div><span class="check ${got[f]?'on':''}" data-a="shop" data-w="${wk}" data-v="${f}">${ICON.check}</span></li>`).join('')}</ul></div>`;}).join('')}
@@ -707,6 +769,14 @@ function viewProgress(){
     ${ticks}</svg>`;
   const ahead=[4,8,12].map(k=>{const f=forecast(cur,k*7);return `<li><div class="grow">In ${k} weeks</div><b>${Math.round(f[f.length-1])} lb</b></li>`;}).join('');
   const weekly=(burn(cur)-S.macros.cal)*7/3500;
+  const ci=checkIn();
+  const ciCard=ci.status==='wait'?`<div class="card"><h3>Plan check-in</h3><p class="small muted" style="margin:6px 0 0">${ci.need?`After ${ci.need} more weekly weigh-in${ci.need>1?'s':''}`:`In about ${ci.days} days`}, the app will compare your real progress to the forecast and tell you if anything needs adjusting.</p></div>`
+    : ci.status==='good'?`<div class="card"><div class="row between"><h3>Plan check-in</h3><span class="chip">On track</span></div><p class="small muted" style="margin:6px 0 0">You’re losing about <b style="color:var(--ink)">${r1(ci.rate)} lb a week</b> — right in line with the plan. Keep going exactly as you are.</p></div>`
+    : `<div class="card" style="background:var(--warn-soft);box-shadow:none"><h3 style="color:var(--warn)">Plan check-in</h3><p class="small" style="margin:6px 0 10px">${ci.status==='slow'
+        ?`You’re losing about <b>${r1(Math.max(0,ci.rate))} lb a week</b>, slower than the planned ${r1(ci.pred)}. First, be sure you’re weighing portions and checking off meals honestly. If you are, a small trim helps:`
+        :`You’re losing about <b>${r1(ci.rate)} lb a week</b> — faster than planned. Losing too fast can cost muscle and stress the liver. A little more food helps:`}
+        <br><b>${fmtN(S.macros.cal)} → ${fmtN(ci.cal)} calories</b> (protein and fat stay the same; carbs change by ${Math.abs(Math.round((ci.cal-S.macros.cal)/4))} g).</p>
+        <button class="btn primary" data-a="adjust" data-v="${ci.cal}">Update my plan</button></div>`;
   return `<div class="eyebrow">Progress</div><h1>${lost>0?`${r1(lost)} lb down`:'Day one starts now'}</h1>
   <p class="muted small" style="margin:0">Started at ${start.w} lb on ${fmtDate(t0)} · now ${cur} lb</p>
   <div class="card">
@@ -721,6 +791,7 @@ function viewProgress(){
       <li><div class="grow">Reach ${S.profile.goal} lb</div><b>${gd?`${fmtDate(gd)}${gd.getFullYear()!==today().getFullYear()?', '+gd.getFullYear():''}`:gd===null?'Done!':'—'}</b></li></ul>
     <p class="small muted" style="margin:10px 0 0">At ${fmtN(S.macros.cal)} cal a day you’re losing about <b style="color:var(--ink)">${r1(Math.max(0,weekly))} lb a week</b>. It slows a little as you get lighter — the forecast already accounts for that. Expect a faster first week (water) and some zig-zags; follow the trend, not one day.</p>
   </div>
+  ${ciCard}
   <div class="card"><h3>Why ${S.profile.goal} lb?</h3><p class="small muted" style="margin:6px 0 0">Losing about 10% of your body weight is the amount research links to the biggest drop in liver fat. When you get there, set your next goal in <b>Me</b>.</p></div>
   ${ws.length?`<div class="card"><h3>Weigh-ins</h3><ul class="list">${[...ws].reverse().slice(0,12).map(x=>`<li><div class="grow">${fmtDate(pKey(x.d))}</div><b>${x.w} lb</b><button class="btn ghost" style="height:30px;padding:0 4px" data-a="delW" data-v="${x.d}" aria-label="delete">✕</button></li>`).join('')}</ul></div>`:''}`;
 }
@@ -757,6 +828,8 @@ function viewMe(){
     <div class="field"><label>I wake up at</label><input type="time" data-set="wake" value="${toTime(S.wake)}"></div>
     <div class="field"><label>Dinner starts at <small>Kitchen closes 30 min later</small></label><input type="time" data-set="dinner" value="${toTime(S.dinner)}"></div>
     <div class="field"><label>Morning snack <small>Small and low-carb, to hold you until lunch</small></label>${sw('early',S.early)}</div>
+    <button class="btn block" style="margin-top:12px" data-a="ics">Add meal reminders to my calendar</button>
+    <p class="tiny muted" style="margin:8px 0 0">Adds a daily alert at each meal time. If you change your times, delete the old “Nourish” events and add them again.</p>
   </div></details>
   <details class="card"><summary>Me & my goal</summary><div class="in">
     <div class="field"><label>First name</label><input type="text" data-set="name" value="${esc(S.name)}" placeholder="Optional"></div>
@@ -785,6 +858,11 @@ function viewMe(){
     <p><b>Drink:</b> water, coffee, herbal tea, green tea, juice with no sugar added.</p>
     <p><b>No:</b> grains of any kind, nuts or seeds, raw veggies, spinach or kale, fried or packaged foods, alcohol, fizzy drinks, cottage cheese, sour cream.</p>
     <p><b>Timing:</b> breakfast within 1 hour of waking, eat every 3–4 hours, nothing after dinner.</p>
+  </div></details>
+  <details class="card"><summary>Backup</summary><div class="in">
+    <p class="small muted" style="margin:0 0 12px">Your plan lives on this phone. Save a backup now and then (to Files, iCloud or a text to yourself).</p>
+    <div class="row" style="gap:8px"><button class="btn" style="flex:1" data-a="backup">Save a backup</button>
+      <label class="btn" style="flex:1">Restore<input type="file" id="restore" accept=".json,application/json" style="display:none"></label></div>
   </div></details>
   <details class="card"><summary>How this app works</summary><div class="in small">
     <p style="margin:0 0 8px">Each meal is a simple recipe. Every day the planner sizes each portion so the whole day hits your protein, carbs and fat — while keeping breakfast low-carb with 30 g+ protein, putting carbs at lunch and in the afternoon, and closing the kitchen after dinner.</p>
@@ -886,6 +964,17 @@ document.addEventListener('click',e=>{
     case 'saveW': {const w=+$('#wIn').value; if(!(w>50&&w<800)){toast('Enter your weight in lb');return;}
       const k=dKey(today()); S.weights=S.weights.filter(x=>x.d!==k); S.weights.push({d:k,w}); save(); toast('Weigh-in saved'); break;}
     case 'delW': S.weights=S.weights.filter(x=>x.d!==v); save(); break;
+    case 'adjust': S.macros.cal=+v; S.lastAdjust=dKey(today()); save(); toast('Plan updated — portions re-sized'); break;
+    case 'copyDay': copyText(dayText(buildDay(el.dataset.k))).then(ok=>toast(ok?'Copied — paste it anywhere':'Couldn’t copy on this device')); return;
+    case 'shareShop': {const off=+el.dataset.w, ws=weekStart(off), tot={}, got=S.shop[dKey(ws)]||{};
+      for(let i=0;i<7;i++) for(const r of buildDay(dKey(addDays(ws,i))).rows) if(r.items) for(const it of r.items) tot[it.fid]=(tot[it.fid]||0)+it.q;
+      const lines=[`Groceries ${fmtDate(ws)} – ${fmtDate(addDays(ws,6))}`];
+      for(const [a,l] of [['m','MEAT & FISH'],['v','PRODUCE'],['d','DAIRY & EGGS'],['p','PANTRY & OTHER']]){
+        const ids=Object.keys(tot).filter(f=>F[f].a===a&&!got[f]&&!F[f].tsp&&!['salt','cinnamon','coffee'].includes(f)).sort((x,y)=>F[x].n.localeCompare(F[y].n));
+        if(ids.length) lines.push('',l,...ids.map(f=>`☐ ${F[f].n.replace(/, (cooked|baked)$/,'')} — ${buyText(f,tot[f])}`));}
+      shareText(lines.join('\n'),'Groceries').then(r=>{if(r==='copied')toast('List copied — paste it in a text');}); return;}
+    case 'ics': saveFile('nourish-meal-reminders.ics','text/calendar',mealIcs(),true); return;
+    case 'backup': saveFile(`nourish-backup-${dKey(today())}.json`,'application/json',JSON.stringify(S)); return;
     case 'reset': if(!confirm('Erase everything and start over?')) return; localStorage.removeItem(KEY); location.reload(); return;
     case 'obNext': obCapture();
       if(UI.ob<2){UI.ob++;}
@@ -897,6 +986,11 @@ document.addEventListener('click',e=>{
     case 'obPick': UI.obPick=v; break;
   }
   render();
+});
+document.addEventListener('change',e=>{
+  if(e.target.id!=='restore'||!e.target.files[0]) return;
+  e.target.files[0].text().then(t=>{const d=JSON.parse(t); if(!d||!d.macros||!d.profile) throw 0;
+    localStorage.setItem(KEY,JSON.stringify(d)); location.reload();}).catch(()=>toast('That file isn’t a Nourish backup'));
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden) render();});
 setInterval(()=>{if(UI.tab==='today'&&!document.querySelector('#view input:focus')) render();},60000);
