@@ -138,6 +138,7 @@ details.card>.in{padding:0 18px 18px}
 .field label small{display:block;color:var(--muted);font-size:12px}
 .field input,.field select{width:118px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--bg);padding:0 12px;text-align:right;font-size:16px}
 .field input[type=text]{width:160px}
+.field input[type=time]{width:132px}
 .field select{text-align:left;width:190px}
 .switch{width:52px;height:32px;border-radius:99px;background:var(--line);position:relative;transition:background .2s;flex:none}
 .switch:after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
@@ -171,6 +172,9 @@ svg.chart{width:100%;height:auto;display:block}
 .xgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
 .xl{display:block;font-size:12px;color:var(--muted)}
 .xl .xin{margin-top:4px;color:var(--ink)}
+.ingb{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:1px;position:relative;padding-right:22px}
+.ingb .sw{position:absolute;right:0;top:1px;font-size:13px;color:var(--faint)}
+.swapped{display:block;font-size:12px;color:var(--accent)}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 86px);transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;transition:all .25s;z-index:70;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%)}
 </style>
@@ -491,7 +495,8 @@ const DEF = {
   macros:{cal:2340,p:144,f:72},
   profile:{hIn:68,age:38,act:1.55,start:272,goal:245},
   st:{cTbsp:4,cr:{cal:25,p:.5,c:.6,f:2.3},scoops:1.5,sc:{cal:110,p:21,c:3,f:1.5},milkOz:8,waterOz:8,cwOz:8,limes:1},
-  log:{}, swaps:{}, weights:[], shop:{}, hideInstall:false
+  log:{}, swaps:{}, weights:[], shop:{}, hideInstall:false,
+  subs:{}, usual:{}, times:{}, waterGoal:null, shopAdd:{}
 };
 let S;
 try { S = Object.assign(structuredClone(DEF), JSON.parse(localStorage.getItem(KEY)||'{}')); } catch(e){ S = structuredClone(DEF); }
@@ -569,13 +574,46 @@ function stepOf(fid){const f=F[fid];return f.u?(fid==='egg'?1:.25):f.tsp?f.tsp/2
    objective, then rounding to kitchen-friendly steps and a polish.
    ============================================================ */
 function schedule(){
-  const bf=S.wake+45, din=S.dinner, s2=din-180, span=s2-bf;
+  const bf=S.wake+45, din=S.times.d??S.dinner, s2=din-180, span=s2-bf;
   const t={wake:S.wake,b:bf,coffee:bf+5,s2,d:din,close:din+30};
   if(S.early){t.s1=r15(bf+span*.33);t.l=r15(bf+span*.57);} else t.l=r15(bf+span*.5);
   t.adrenal=r15((t.l+s2)/2);
+  for(const k in S.times) if(k in t) t[k]=S.times[k];   // her own times win
+  t.coffee=t.b+5; t.close=t.d+30;
   return t;
 }
-function recipeFor(slot,key,dow){ const k=S.swaps[key]&&S.swaps[key][slot]; return k&&(R[k]||FRUITS[k])?k:WEEK[slot][dow]; }
+function recipeFor(slot,key,dow){
+  const ok=k=>k&&(R[k]||FRUITS[k]);
+  const k=S.swaps[key]&&S.swaps[key][slot], u=S.usual[slot]&&S.usual[slot][dow];
+  return ok(k)?k:ok(u)?u:WEEK[slot][dow];
+}
+/* Ingredient swaps: foods that can stand in for each other (closest first) */
+const ALT = {
+  protein:[['chicken','roastChicken','gchicken','turkey','pork'],['beef90','beef93','sirloin','beefRoast'],['salmon','cod','shrimp']],
+  carb:[['sweetPotato'],['blackBeans','lentils']],
+  veg:[['asparagus','zucchini','greenBeans','broccoli','brussels','cauliflower'],['pepperOnion','mushOnion','mushrooms','celeryCarrot','carrots','tomatoes']],
+  fruit:[['pineapple','kiwi','apricot','watermelon','orange']],
+  fat:[['butter','oliveOil','tallow','coconutOil','avocado']],
+  dairy:[['greekYogurt','kefir'],['cheddar','feta']],
+  broth:[['brothC','brothB']],
+  herb:[['basil','cilantro']]
+};
+function groupOf(fid){for(const g in ALT) for(const sub of ALT[g]) if(sub.includes(fid)) return {g,sub};return null;}
+function altsFor(fid){const x=groupOf(fid); if(!x) return []; return [...x.sub,...ALT[x.g].filter(s=>s!==x.sub).flat()].filter(f=>f!==fid);}
+function autoAlt(fid){return altsFor(fid).find(f=>!S.subs[f])||null;}
+function globalSub(fid){const v=S.subs[fid]; if(!v) return null; return v!=='auto'&&F[v]&&!S.subs[v]?v:autoAlt(fid);}
+// keep the same protein / carbs / fat when trading one food for another
+function swapRatio(a,b){const g=groupOf(a), k=g&&{protein:'p',carb:'c',fat:'f'}[g.g]; return k&&F[b][k]?F[a][k]/F[b][k]:1;}
+function applySubs(items,key,slot){
+  const day=(S.swaps[key]&&S.swaps[key].sub&&S.swaps[key].sub[slot])||{};
+  for(const it of items){ const to=day[it.fid]||globalSub(it.fid);
+    if(!to||to===it.fid||!F[to]) continue;
+    const k=swapRatio(it.fid,to); it.orig=it.fid; it.fid=to; it.daySub=!!day[it.orig];
+    for(const f of ['q','min','max','base']) it[f]=+(it[f]*k).toFixed(1);
+    if(it.role==='x'&&!F[to].herb){const st=stepOf(to); it.q=it.min=it.max=it.base=+Math.max(st,Math.round(it.q/st)*st).toFixed(2);}
+  }
+  return items;
+}
 function mkItems(list){return list.map(([fid,q,role,min,max])=>({fid,q,role:role||'x',min:min??q,max:max??q,base:q}));}
 function shakeItems(fruitKey){
   const st=S.st;
@@ -586,7 +624,7 @@ const _cache={};
 function buildDay(key){
   applyStaples();
   const ate=(S.log[key]&&S.log[key].ate)||{};
-  const sig=key+JSON.stringify([S.macros,S.st,S.early,S.wake,S.dinner,S.swaps[key]||0,ate]);
+  const sig=key+JSON.stringify([S.macros,S.st,S.early,S.wake,S.dinner,S.swaps[key]||0,ate,S.subs,S.usual,S.times]);
   if(_cache[key]&&_cache[key].sig===sig) return _cache[key].day;
   const dow=pKey(key).getDay(), T=schedule();
   const tgt={...S.macros,c:carbsOf(S.macros)};
@@ -598,7 +636,7 @@ function buildDay(key){
   const adrenal=actual('adrenal',mkItems([['lime',S.st.limes],['coconutWater',S.st.cwOz],['salt',1]]));
   const meals=[];
   const add=(slot)=>{const lk=ate[slot]&&ate[slot].rk, rk=lk&&(R[lk]||FRUITS[lk])?lk:recipeFor(slot,key,dow);
-    const items=actual(slot,slot==='s2'?shakeItems(rk):mkItems(R[rk].items));
+    const items=actual(slot,applySubs(slot==='s2'?shakeItems(rk):mkItems(R[rk].items),key,slot));
     meals.push({slot,rk,items,done:!!ate[slot]});};
   add('b'); if(S.early) add('s1'); add('l'); add('s2'); add('d');
 
@@ -697,15 +735,27 @@ function renderTabs(){
   $('#tabs').innerHTML=[['today','Today'],['week','Week'],['progress','Progress'],['me','Me']]
     .map(([k,l])=>`<button data-a="tab" data-v="${k}" class="${UI.tab===k?'on':''}">${ICON[k]}${l}</button>`).join('');
 }
+const autoBottles=()=>Math.max(4,Math.round(Math.min(100,curWeight()/2)/16));
 function logOf(key){return S.log[key]||(S.log[key]={done:{},water:0});}
 
 function isLogged(lg,id){return !!((lg.ate&&lg.ate[id])||(lg.done&&lg.done[id]));}
 const macroText=m=>`${fmtN(m.cal)} cal · ${Math.round(m.p)}g protein · ${Math.round(m.c)}g carbs · ${Math.round(m.f)}g fat`;
 function mline(m){return `<div class="mline"><span><b>${fmtN(m.cal)}</b> cal</span><span><i class="dot" style="background:var(--pro)"></i>Protein <b>${Math.round(m.p)}g</b></span><span><i class="dot" style="background:var(--carb)"></i>Carbs <b>${Math.round(m.c)}g</b></span><span><i class="dot" style="background:var(--fat)"></i>Fat <b>${Math.round(m.f)}g</b></span></div>`;}
-function ingList(items){return `<ul class="ing">${items.filter(i=>i.fid!=='water'||i.q>0).map(i=>{const a=amt(i.fid,i.q);return `<li><span>${esc(F[i.fid].n)}</span><span class="amt">${a.main}${a.sub?`<small>${a.sub}</small>`:''}</span></li>`;}).join('')}</ul>`;}
+function ingList(items,ctx){return `<ul class="ing">${items.filter(i=>i.fid!=='water'||i.q>0).map(i=>{const a=amt(i.fid,i.q), from=i.orig||i.fid, can=ctx&&groupOf(from);
+  const nm=`${esc(F[i.fid].n)}${i.orig?`<small class="swapped">instead of ${esc(F[i.orig].n.replace(/, (cooked|baked)$/,''))}</small>`:''}`;
+  return `<li>${can?`<button class="ingb" data-a="subIng" data-k="${ctx.key}" data-s="${ctx.slot}" data-v="${from}">${nm}<span class="sw" aria-label="swap">⇄</span></button>`:`<span>${nm}</span>`}<span class="amt">${a.main}${a.sub?`<small>${a.sub}</small>`:''}</span></li>`;}).join('')}</ul>`;}
+function openSubIng(key,slot,from){
+  const day=buildDay(key), r=day.rows.find(x=>x.id===slot), cur=(r.items.find(i=>(i.orig||i.fid)===from)||{}).fid||from;
+  UI.subCtx={key,slot,from};
+  const nm=f=>esc(F[f].n.replace(/, (cooked|baked)$/,''));
+  $('#sheet').innerHTML=`<div class="grab"></div><h2>Swap ${nm(from)}</h2><p class="small muted" style="margin:0 0 6px">Pick anything. The amount re-sizes to keep your numbers.</p>
+    <div class="field" style="border:0"><label>Every time, not just this day</label><button class="switch ${UI.subAlways?'on':''}" data-a="subAlways" role="switch" aria-checked="${!!UI.subAlways}"></button></div>
+    <ul class="list">${[from,...altsFor(from)].map(f=>`<li><button class="grow" style="text-align:left;padding:4px 0" data-a="pickIng" data-v="${f}">${nm(f)}${f===from?' <span class="tiny muted">· planned</span>':''}</button>${f===cur?'<span class="chip">Current</span>':''}</li>`).join('')}</ul>`;
+  $('#sheet').classList.add('show');$('#scrim').classList.add('show');
+}
 function detail(r,key,checkable){
   const done=isLogged(logOf(key),r.id);
-  return `${ingList(r.items)}
+  return `${ingList(r.items,r.type==='meal'&&!done?{key,slot:r.slot}:null)}
   ${r.how?`<p class="how small muted">${esc(r.how)}</p>`:''}
   ${r.id==='d'&&S.family>1?`<p class="how small"><b>Cooking for ${S.family}:</b> make ${S.family}× this, then weigh just your plate.</p>`:''}
   <p class="tiny muted" style="margin:12px 0 0">${macroText(r.m)}</p>
@@ -741,7 +791,7 @@ function viewToday(){
   const nowRow=[...day.rows].reverse().find(r=>r.t<=nm)?.id;
   const h=new Date().getHours(), greet=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
   const allDone=check.every(r=>isLogged(lg,r.id));
-  const bottles=Math.max(4,Math.round(Math.min(100,curWeight()/2)/16));
+  const bottles=S.waterGoal||autoBottles();
   const streak=calcStreak();
   const gd=goalDate();
   const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
@@ -854,10 +904,12 @@ function viewWeek(){
       <div class="pills">${GROUPS.map(g=>`<span class="pill ${g[1].some(f=>used.has(f))?'on':''}">${g[0]}</span>`).join('')}</div></div>`;
   } else if(UI.seg==='shop'){
     const ws=weekStart(UI.shopWeek), wk=dKey(ws), got=S.shop[wk]||{}, secs=shopList(UI.shopWeek);
-    const all=secs.flatMap(x=>x.items), done=all.filter(i=>got[i.key]).length;
+    const all=[...secs.flatMap(x=>x.items).map(i=>i.key),...(S.shopAdd[wk]||[]).map(n=>'u:'+n)], done=all.filter(k=>got[k]).length;
     body=`<div class="seg" style="margin-top:0">${[[0,'This week'],[1,'Next week']].map(([k,l])=>`<button data-a="shopWeek" data-v="${k}" class="${UI.shopWeek===k?'on':''}">${l}</button>`).join('')}</div>
     <div class="row between" style="gap:10px"><p class="small muted" style="margin:0">${fmtDate(ws)} – ${fmtDate(addDays(ws,6))}. Sized to your exact portions${S.family>1?`, with dinners for ${S.family}`:''}.</p><button class="btn" style="height:36px;padding:0 14px;flex:none" data-a="shareShop" data-w="${UI.shopWeek}">Share</button></div>
     <div class="card row between" style="padding:12px 18px"><span class="small"><b>${done}</b> of ${all.length} checked</span><button class="btn ghost" style="height:32px;padding:0 4px" data-a="shopReset" data-w="${wk}">Reset</button></div>
+    ${(()=>{const mine=S.shopAdd[wk]||[];return `<div class="card"><h3>My extras</h3><ul class="list">${mine.map(n=>`<li class="tap ${got['u:'+n]?'got':''}" data-a="shop" data-w="${wk}" data-v="${esc('u:'+n)}"><div class="grow">${esc(n)}</div><button class="btn ghost" style="height:28px;padding:0 4px" data-a="rmShop" data-w="${wk}" data-v="${esc(n)}" aria-label="remove">✕</button><span class="check ${got['u:'+n]?'on':''}">${ICON.check}</span></li>`).join('')}
+      <li><input id="shopNew" placeholder="Add anything…" style="flex:1;min-width:0;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--bg);padding:0 12px;font-size:16px"><button class="btn" style="height:40px" data-a="addShop" data-w="${wk}">Add</button></li></ul></div>`;})()}
     ${secs.map(sec=>`<div class="card"><h3>${sec.name}</h3><ul class="list">${sec.items.map(i=>`<li class="tap ${got[i.key]?'got':''}" data-a="shop" data-w="${wk}" data-v="${esc(i.key)}"><div class="grow">${esc(i.n)}${i.u?`<div class="tiny muted">For ${esc(i.u.length>3?i.u.slice(0,3).join(' · ')+` +${i.u.length-3} more`:i.u.join(' · '))}</div>`:''}</div>${i.q?`<b class="small qty">${esc(i.q)}</b>`:''}<span class="check ${got[i.key]?'on':''}">${ICON.check}</span></li>`).join('')}</ul></div>`).join('')}`;
   } else {
     body=prepView();
@@ -983,6 +1035,11 @@ function viewMe(){
     <div class="field"><label>Dinner starts at <small>Kitchen closes 30 min later</small></label><input type="time" data-set="dinner" value="${toTime(S.dinner)}"></div>
     <div class="field"><label>People eating dinner <small>The shopping list scales dinners to match</small></label>${inp('family',S.family,'min="1" max="8" step="1"')}</div>
     <div class="field"><label>Morning snack <small>Small and low-carb, to hold you until lunch</small></label>${sw('early',S.early)}</div>
+    <div class="field"><label>Water goal <small>16 oz bottles a day</small></label>${inp('waterGoal',S.waterGoal??autoBottles(),'min="1" max="12" step="1"')}</div>
+    <p class="small" style="margin:16px 0 0;font-weight:600">Meal times</p>
+    <p class="tiny muted" style="margin:2px 0 4px">Suggested from your wake-up and dinner times. Change any of them.</p>
+    ${[['b','Breakfast'],...(S.early?[['s1','Morning snack']]:[]),['l','Lunch'],['adrenal','Adrenal cocktail'],['s2','Protein snack']].map(([k,l])=>`<div class="field"><label>${l}</label><input type="time" data-set="time.${k}" value="${toTime(schedule()[k])}"></div>`).join('')}
+    ${Object.keys(S.times).length?`<button class="btn ghost block" data-a="resetTimes">Use suggested times</button>`:''}
     <button class="btn block" style="margin-top:12px" data-a="ics">Add meal reminders to my calendar</button>
     <p class="tiny muted" style="margin:8px 0 0">Adds a daily alert at each meal time. If you change your times, delete the old “Nourish” events and add them again.</p>
   </div></details>
@@ -1006,6 +1063,10 @@ function viewMe(){
     <div class="field"><label>Per scoop: fat <small>g</small></label>${inp('st.sc.f',S.st.sc.f,'step="0.5"')}</div>
     <div class="field"><label>Milk in shake <small>oz</small></label>${inp('st.milkOz',S.st.milkOz)}</div>
     <div class="field"><label>Coconut water in adrenal cocktail <small>oz</small></label>${inp('st.cwOz',S.st.cwOz)}</div>
+  </div></details>
+  <details class="card"><summary>Foods I’d rather skip</summary><div class="in">
+    <p class="small muted" style="margin:0 0 10px">Tap anything you don’t want. It gets swapped for something similar in every meal, and your numbers stay the same.</p>
+    <div class="pills">${Object.values(ALT).flat(2).map(f=>{const v=S.subs[f];return `<button class="pill ${v?'on':''}" data-a="skip" data-v="${f}">${v?'✕ ':''}${esc(F[f].n.replace(/, (cooked|baked)$/,''))}${v&&v!=='auto'&&F[v]?` → ${esc(F[v].n.replace(/, (cooked|baked)$/,''))}`:''}</button>`;}).join('')}</div>
   </div></details>
   <details class="card"><summary>My food rules</summary><div class="in rules">
     <p><b>Yes:</b> meat (lots!), fish, eggs, chicken or beef bone broth, cooked veggies, sweet potato, lentils, black beans, citrus & tropical fruit, avocado, coconut, A2 / goat / sheep dairy, raw aged cheese, kefir, plain Greek yogurt.</p>
@@ -1031,10 +1092,11 @@ function viewMe(){
    SWAP SHEET + ONBOARDING
    ============================================================ */
 function openSwap(key,slot){
-  const cur=recipeFor(slot,key,pKey(key).getDay());
+  const dow=pKey(key).getDay(), cur=recipeFor(slot,key,dow), usual=(S.usual[slot]&&S.usual[slot][dow])||WEEK[slot][dow];
   const name=k=>slot==='s2'?`Protein Shake + ${FRUITS[k][1]}`:R[k].n;
   $('#sheet').innerHTML=`<div class="grab"></div><h2>Swap ${SLOTNAME[slot].toLowerCase()}</h2><p class="small muted" style="margin:0 0 6px">Portions re-size automatically to keep your day on target.</p>
-    <ul class="list">${POOL[slot].map(k=>`<li><button class="grow" style="text-align:left;padding:4px 0" data-a="pick" data-k="${key}" data-s="${slot}" data-v="${k}">${esc(name(k))}${k===WEEK[slot][pKey(key).getDay()]?' <span class="tiny muted">· usual</span>':''}</button>${k===cur?'<span class="chip">Current</span>':''}</li>`).join('')}</ul>`;
+    <div class="field" style="border:0"><label>Every ${DOW[dow]}, not just this one</label><button class="switch ${UI.swapAlways?'on':''}" data-a="swapAlways" role="switch" aria-checked="${!!UI.swapAlways}"></button></div>
+    <ul class="list">${POOL[slot].map(k=>`<li><button class="grow" style="text-align:left;padding:4px 0" data-a="pick" data-k="${key}" data-s="${slot}" data-v="${k}">${esc(name(k))}${k===usual?' <span class="tiny muted">· usual</span>':''}</button>${k===cur?'<span class="chip">Current</span>':''}</li>`).join('')}</ul>`;
   $('#sheet').classList.add('show');$('#scrim').classList.add('show');
 }
 function unitOf(fid){const f=F[fid];
@@ -1124,6 +1186,7 @@ function setPath(path,val){
   if(path==='ft'||path==='in'){const ft=Math.floor(S.profile.hIn/12),i=S.profile.hIn%12;S.profile.hIn=path==='ft'?(+val)*12+i:ft*12+(+val);return;}
   if(path==='wake'||path==='dinner'){S[path]=fromTime(val);return;}
   if(path==='name'){S.name=val.trim();return;}
+  if(path.startsWith('time.')){if(val) S.times[path.slice(5)]=fromTime(val);return;}
   const ks=path.split('.');let o=S;for(const k of ks.slice(0,-1))o=o[k];
   const num=+val; if(!isFinite(num)||val==='') return; o[ks[ks.length-1]]=num;
 }
@@ -1145,9 +1208,22 @@ document.addEventListener('click',e=>{
     case 'unlog': {const lg=logOf(UI.logCtx.key); if(lg.ate) delete lg.ate[UI.logCtx.id]; delete lg.done[UI.logCtx.id]; save(); closeSheet(); break;}
     case 'water': {const lg=logOf(dKey(today()));lg.water=lg.water===+v?+v-1:+v;save();break;}
     case 'swap': openSwap(el.dataset.k,el.dataset.s); return;
-    case 'pick': {const k=el.dataset.k;S.swaps[k]=S.swaps[k]||{};
-      if(v===WEEK[el.dataset.s][pKey(k).getDay()]) delete S.swaps[k][el.dataset.s]; else S.swaps[k][el.dataset.s]=v;
-      save(); closeSheet(); toast('Swapped — portions re-balanced'); break;}
+    case 'pick': {const k=el.dataset.k, sl=el.dataset.s, dow=pKey(k).getDay();S.swaps[k]=S.swaps[k]||{};
+      if(UI.swapAlways){S.usual[sl]=S.usual[sl]||{}; if(v===WEEK[sl][dow]) delete S.usual[sl][dow]; else S.usual[sl][dow]=v; delete S.swaps[k][sl];}
+      else{const usual=(S.usual[sl]&&S.usual[sl][dow])||WEEK[sl][dow]; if(v===usual) delete S.swaps[k][sl]; else S.swaps[k][sl]=v;}
+      save(); closeSheet(); toast(UI.swapAlways?`Swapped for every ${DOW[dow]}`:'Swapped — portions re-balanced'); break;}
+    case 'swapAlways': UI.swapAlways=!UI.swapAlways; el.classList.toggle('on',UI.swapAlways); return;
+    case 'subIng': openSubIng(el.dataset.k,el.dataset.s,v); return;
+    case 'subAlways': UI.subAlways=!UI.subAlways; el.classList.toggle('on',UI.subAlways); return;
+    case 'pickIng': {const c=UI.subCtx, from=c.from; S.swaps[c.key]=S.swaps[c.key]||{}; const sw=S.swaps[c.key];
+      sw.sub=sw.sub||{}; sw.sub[c.slot]=sw.sub[c.slot]||{}; delete sw.sub[c.slot][from];
+      if(UI.subAlways){ if(v===from) delete S.subs[from]; else S.subs[from]=v; }
+      else if(v!==from||S.subs[from]) sw.sub[c.slot][from]=v;
+      save(); closeSheet(); toast(UI.subAlways?'Swapped everywhere — portions re-sized':'Swapped — portions re-sized'); break;}
+    case 'skip': if(S.subs[v]) delete S.subs[v]; else S.subs[v]='auto'; save(); break;
+    case 'resetTimes': S.times={}; save(); toast('Back to the suggested times'); break;
+    case 'addShop': {const inp=$('#shopNew'), n=inp&&inp.value.trim(); if(!n) return; const w=el.dataset.w; (S.shopAdd[w]=S.shopAdd[w]||[]).push(n); save(); break;}
+    case 'rmShop': {const w=el.dataset.w; S.shopAdd[w]=(S.shopAdd[w]||[]).filter(x=>x!==v); save(); break;}
     case 'close': closeSheet(); return;
     case 'day': UI.weekDay=+v; UI.open=null; break;
     case 'seg': UI.seg=v; break;
@@ -1166,6 +1242,7 @@ document.addEventListener('click',e=>{
       const lines=[`Groceries ${fmtDate(ws)} – ${fmtDate(addDays(ws,6))}`];
       for(const sec of shopList(off)){const its=sec.items.filter(i=>!got[i.key]&&i.q!=='have on hand');
         if(its.length) lines.push('',sec.name.toUpperCase(),...its.map(i=>`☐ ${i.n}${i.q?` — ${i.q}`:''}`));}
+      const mine=(S.shopAdd[dKey(ws)]||[]).filter(n=>!got['u:'+n]); if(mine.length) lines.push('','EXTRAS',...mine.map(n=>`☐ ${n}`));
       shareText(lines.join('\n'),'Groceries').then(r=>{if(r==='copied')toast('List copied — paste it in a text');}); return;}
     case 'shopReset': if(!confirm('Uncheck everything on this list?')) return; delete S.shop[el.dataset.w]; save(); break;
     case 'ics': saveFile('nourish-meal-reminders.ics','text/calendar',mealIcs(),true); return;
@@ -1187,6 +1264,7 @@ document.addEventListener('change',e=>{
   e.target.files[0].text().then(t=>{const d=JSON.parse(t); if(!d||!d.macros||!d.profile) throw 0;
     localStorage.setItem(KEY,JSON.stringify(d)); location.reload();}).catch(()=>toast('That file isn’t a Nourish backup'));
 });
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='shopNew'){e.preventDefault();document.querySelector('[data-a=addShop]').click();}});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden) render();});
 setInterval(()=>{if(UI.tab==='today'&&!document.querySelector('#view input:focus')) render();},60000);
 render();

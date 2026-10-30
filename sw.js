@@ -1,6 +1,6 @@
 // Offline support: always try the network for the page (so updates show up),
 // fall back to the saved copy when there's no signal.
-const CACHE = 'nourish-v4';
+const CACHE = 'nourish-v5';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
