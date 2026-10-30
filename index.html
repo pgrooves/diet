@@ -153,6 +153,7 @@ details.card>.in{padding:0 18px 18px}
 .scrim.show{display:block}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;background:var(--card);border-radius:24px 24px 0 0;max-height:80vh;overflow:auto;padding:10px 18px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);max-width:540px;margin:0 auto}
 .sheet.show{transform:none}
+.sheet:not(.show){visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility 0s .28s}
 .grab{width:40px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 12px}
 .ob{position:fixed;inset:0;z-index:60;background:var(--bg);overflow:auto}
 .ob .wrap{padding-bottom:40px;min-height:100%;display:flex;flex-direction:column}
@@ -162,6 +163,14 @@ details.card>.in{padding:0 18px 18px}
 .steps i{flex:1;height:4px;border-radius:9px;background:var(--line)}
 .steps i.on{background:var(--accent)}
 svg.chart{width:100%;height:auto;display:block}
+.logl input.num{width:84px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--bg);padding:0 10px;text-align:right;font-size:16px}
+.logl .unit{width:34px;text-align:left}
+.logl li{align-items:center}
+.xform{background:var(--bg);border-radius:14px;padding:14px;margin:12px 0}
+.xin{width:100%;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);padding:0 12px;font-size:16px;margin-bottom:8px}
+.xgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}
+.xl{display:block;font-size:12px;color:var(--muted)}
+.xl .xin{margin-top:4px;color:var(--ink)}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 86px);transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;transition:all .25s;z-index:70;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%)}
 </style>
@@ -372,6 +381,12 @@ const POOL = {
   b:['BA','BB','BC','BD','BE','BF','BG'], s1:['S1a','S1b','S1c','S1d','S1e'], s2:Object.keys(FRUITS),
   l:[...LUNCHES,...DINNERS], d:[...DINNERS,...LUNCHES]
 };
+const SHORT = {BA:'Eggs & turkey',BB:'Steak & eggs',BC:'Salmon & eggs',BD:'Chicken patties',BE:'Bacon & eggs',BF:'Yogurt & kiwi breakfast',BG:'Kefir & eggs',
+  S1a:'Broth & egg',S1b:'Yogurt & kiwi',S1c:'Broth & cheese',S1d:'Kefir & pineapple',S1e:'Boiled eggs',
+  LSoup:'Chicken soup',LRoast:'Roast beef lunch',LChLen:'Chicken & lentils',LBowl:'Beef & bean bowl',LSalmon:'Salmon lunch',LSteak:'Steak lunch',LCod:'Cod & lentils',
+  DRoast:'Beef roast',DChicken:'Baked chicken',DBeefBean:'Beef & black beans',DSalmon:'Salmon dinner',DSteak:'Steak dinner',DShrimp:'Garlic shrimp',DRoastChicken:'Roast chicken',
+  XPork:'Pork tenderloin',XChili:'Chicken chili',XBurger:'Burgers',XSoup:'Beef & lentil soup',XCoconutShrimp:'Coconut shrimp'};
+const shortOf=r=>r.id==='s2'?'Protein shake':r.id==='coffee'?'Coffee':r.id==='adrenal'?'Adrenal cocktail':(SHORT[r.rk]||r.title);
 const SLOTNAME = {b:'Breakfast',s1:'Morning snack',l:'Lunch',s2:'Protein snack',d:'Dinner'};
 
 /* Food groups from her protocol — the week must use every one */
@@ -457,13 +472,13 @@ const SPLIT = {pepperOnion:[['peppers',.5],['onions',.5]],celeryCarrot:[['celery
 const ALWAYS = {k:['Green tea','Herbal tea','100% juice, no sugar added'],s:['Sea salt','Black pepper','Garlic powder','Onion powder','Cumin','Chili powder','Paprika','Turmeric','Rosemary','Thyme','Cinnamon']};
 const AISLES=[['m','Meat & protein'],['b','Bone broth'],['v','Vegetables'],['f','Fruit'],['d','Dairy'],['o','Cooking fats'],['k','Drinks'],['s','Pantry & seasonings']];
 function shopList(off){
-  const ws=weekStart(off), tot={};
+  const ws=weekStart(off), tot={}, use={};
   for(let i=0;i<7;i++) for(const r of buildDay(dKey(addDays(ws,i))).rows) if(r.items){
-    const mult=r.id==='d'?Math.max(1,Math.round(S.family||1)):1;
-    for(const it of r.items) for(const [k,fct] of (SPLIT[it.fid]||[[it.fid,1]])) if(SH[k]) tot[k]=(tot[k]||0)+it.q*fct*mult;
+    const mult=r.id==='d'?Math.max(1,Math.round(S.family||1)):1, nm=shortOf(r);
+    for(const it of r.items) for(const [k,fct] of (SPLIT[it.fid]||[[it.fid,1]])) if(SH[k]){tot[k]=(tot[k]||0)+it.q*fct*mult;(use[k]=use[k]||new Set()).add(nm);}
   }
   return AISLES.map(([a,name])=>({a,name,items:[
-    ...Object.keys(tot).filter(k=>SH[k].a===a).sort((x,y)=>SH[x].n.localeCompare(SH[y].n)).map(k=>({key:k,n:SH[k].n,q:SH[k].q(tot[k])})),
+    ...Object.keys(tot).filter(k=>SH[k].a===a).sort((x,y)=>SH[x].n.localeCompare(SH[y].n)).map(k=>({key:k,n:SH[k].n,q:SH[k].q(tot[k]),u:[...use[k]]})),
     ...(ALWAYS[a]||[]).map(n=>({key:'x:'+n,n,q:''}))]})).filter(s=>s.items.length);
 }
 
@@ -570,29 +585,36 @@ function shakeItems(fruitKey){
 const _cache={};
 function buildDay(key){
   applyStaples();
-  const sig=key+JSON.stringify([S.macros,S.st,S.early,S.wake,S.dinner,S.swaps[key]||0]);
+  const ate=(S.log[key]&&S.log[key].ate)||{};
+  const sig=key+JSON.stringify([S.macros,S.st,S.early,S.wake,S.dinner,S.swaps[key]||0,ate]);
   if(_cache[key]&&_cache[key].sig===sig) return _cache[key].day;
   const dow=pKey(key).getDay(), T=schedule();
   const tgt={...S.macros,c:carbsOf(S.macros)};
-  const coffee=mkItems([['coffee',1],['creamer',S.st.cTbsp]]);
-  const adrenal=mkItems([['lime',S.st.limes],['coconutWater',S.st.cwOz],['salt',1]]);
+  // anything logged is locked to what she actually ate (plus any off-plan extras)
+  for(const id in ate) for(const x of ate[id].x||[]) F[x.id]={n:x.n,u:'serving',us:'servings',cal:+x.cal||0,p:+x.p||0,c:+x.c||0,f:+x.f||0,a:'x',extra:1};
+  const actual=(id,items)=>ate[id]?[...ate[id].items.filter(([fid])=>F[fid]).map(([fid,q])=>({fid,q,role:'x',min:q,max:q,base:q})),
+    ...(ate[id].x||[]).map(x=>({fid:x.id,q:1,role:'x',min:1,max:1,base:1}))]:items;
+  const coffee=actual('coffee',mkItems([['coffee',1],['creamer',S.st.cTbsp]]));
+  const adrenal=actual('adrenal',mkItems([['lime',S.st.limes],['coconutWater',S.st.cwOz],['salt',1]]));
   const meals=[];
-  const add=(slot)=>{const rk=recipeFor(slot,key,dow);
-    const items=slot==='s2'?shakeItems(rk):mkItems(R[rk].items);
-    meals.push({slot,rk,items});};
+  const add=(slot)=>{const lk=ate[slot]&&ate[slot].rk, rk=lk&&(R[lk]||FRUITS[lk])?lk:recipeFor(slot,key,dow);
+    const items=actual(slot,slot==='s2'?shakeItems(rk):mkItems(R[rk].items));
+    meals.push({slot,rk,items,done:!!ate[slot]});};
   add('b'); if(S.early) add('s1'); add('l'); add('s2'); add('d');
 
   // what's left after the fixed drinks
   const fx=sumMac([...coffee,...adrenal]);
   const Rm={p:tgt.p-fx.p,c:tgt.c-fx.c,f:tgt.f-fx.f};
   const fixedOf=m=>sumMac(m.items.filter(i=>i.role==='x'));
-  const MT={};
-  MT.b={p:clamp(Rm.p*.2,33,40),c:6,f:Math.max(13,Rm.f*.25)};
+  const MT={}, got=slot=>{const m=meals.find(x=>x.slot===slot);return m&&m.done?sumMac(m.items):null;};
+  MT.b=got('b')||{p:clamp(Rm.p*.2,33,40),c:6,f:Math.max(13,Rm.f*.25)};
   const s1=meals.find(m=>m.slot==='s1'); if(s1) MT.s1=sumMac(s1.items);
   const sh=fixedOf(meals.find(m=>m.slot==='s2'));
-  MT.s2={p:sh.p+1,c:sh.c+Rm.c*.12,f:sh.f};
+  MT.s2=got('s2')||{p:sh.p+1,c:sh.c+Rm.c*.12,f:sh.f};
   const rest={};for(const k of ['p','c','f']) rest[k]=Rm[k]-MT.b[k]-(MT.s1?MT.s1[k]:0)-MT.s2[k];
-  MT.l={p:rest.p*.5,c:rest.c*.52,f:rest.f*.5}; MT.d={p:rest.p*.5,c:rest.c*.48,f:rest.f*.5};
+  const gl=got('l'), gd=got('d');
+  MT.l=gl||(gd?{p:rest.p-gd.p,c:rest.c-gd.c,f:rest.f-gd.f}:{p:rest.p*.5,c:rest.c*.52,f:rest.f*.5});
+  MT.d=gd||{p:rest.p-MT.l.p,c:rest.c-MT.l.c,f:rest.f-MT.l.f};
   solve(meals,Rm,MT);
 
   const rows=[];
@@ -677,27 +699,28 @@ function renderTabs(){
 }
 function logOf(key){return S.log[key]||(S.log[key]={done:{},water:0});}
 
+function isLogged(lg,id){return !!((lg.ate&&lg.ate[id])||(lg.done&&lg.done[id]));}
+const macroText=m=>`${fmtN(m.cal)} cal · ${Math.round(m.p)}g protein · ${Math.round(m.c)}g carbs · ${Math.round(m.f)}g fat`;
 function mline(m){return `<div class="mline"><span><b>${fmtN(m.cal)}</b> cal</span><span><i class="dot" style="background:var(--pro)"></i>Protein <b>${Math.round(m.p)}g</b></span><span><i class="dot" style="background:var(--carb)"></i>Carbs <b>${Math.round(m.c)}g</b></span><span><i class="dot" style="background:var(--fat)"></i>Fat <b>${Math.round(m.f)}g</b></span></div>`;}
 function ingList(items){return `<ul class="ing">${items.filter(i=>i.fid!=='water'||i.q>0).map(i=>{const a=amt(i.fid,i.q);return `<li><span>${esc(F[i.fid].n)}</span><span class="amt">${a.main}${a.sub?`<small>${a.sub}</small>`:''}</span></li>`;}).join('')}</ul>`;}
 function detail(r,key,checkable){
-  const done=!!logOf(key).done[r.id];
+  const done=isLogged(logOf(key),r.id);
   return `${ingList(r.items)}
-  ${r.how?`<p class="how">${esc(r.how)}</p>`:''}
-  ${r.id==='d'&&S.family>1?`<p class="how"><b>Cooking for ${S.family}:</b> make ${S.family}× this, then weigh just your plate.</p>`:''}
-  ${r.why?`<p class="why">${ICON.leaf}<span>${esc(r.why)}</span></p>`:''}
-  ${mline(r.m)}
+  ${r.how?`<p class="how small muted">${esc(r.how)}</p>`:''}
+  ${r.id==='d'&&S.family>1?`<p class="how small"><b>Cooking for ${S.family}:</b> make ${S.family}× this, then weigh just your plate.</p>`:''}
+  <p class="tiny muted" style="margin:12px 0 0">${macroText(r.m)}</p>
   <div class="actions">
-    ${r.type==='meal'?`<button class="btn" data-a="swap" data-k="${key}" data-s="${r.slot}">Swap meal</button>`:''}
-    ${checkable?`<button class="btn ${done?'':'primary'}" data-a="check" data-k="${key}" data-id="${r.id}">${done?'Undo':'I ate this'}</button>`:''}
+    ${checkable?`<button class="btn ${done?'':'primary'}" data-a="log" data-k="${key}" data-id="${r.id}">${done?'Edit what I ate':'Log it'}</button>`:''}
+    ${r.type==='meal'&&!done?`<button class="btn ghost" style="flex:0 0 auto" data-a="swap" data-k="${key}" data-s="${r.slot}">Swap</button>`:''}
   </div>`;
 }
 function timeline(day,checkable,now){
   const lg=logOf(day.key);
   return `<div class="card tl">${day.rows.map(r=>{
-    const isOpen=UI.open===day.key+r.id, done=!!lg.done[r.id];
-    const sub=r.items?`${fmtN(r.m.cal)} cal · ${Math.round(r.m.p)}g protein`:r.sub;
+    const isOpen=UI.open===day.key+r.id, done=isLogged(lg,r.id);
+    const sub=r.items?`${fmtN(r.m.cal)} cal${done?' · logged':''}`:r.sub;
     const cls=['item',r.type==='info'?'info':'',done?'done':'',now===r.id?'now':''].join(' ');
-    const right=r.items&&checkable?`<span class="check ${done?'on':''}" data-a="check" data-k="${day.key}" data-id="${r.id}" role="checkbox" aria-checked="${done}">${ICON.check}</span>`:(r.items?`<span class="tiny muted">${isOpen?'Hide':'View'}</span>`:'');
+    const right=r.items&&checkable?`<span class="check ${done?'on':''}" data-a="log" data-k="${day.key}" data-id="${r.id}" role="checkbox" aria-checked="${done}">${ICON.check}</span>`:(r.items?`<span class="tiny muted">${isOpen?'Hide':'View'}</span>`:'');
     return `<div class="${cls}">
       <button class="ihead" ${r.items?`data-a="open" data-v="${day.key+r.id}"`:''}>
         <span class="t">${tfmt(r.t)}</span>
@@ -711,30 +734,27 @@ function timeline(day,checkable,now){
 function viewToday(){
   const key=dKey(today()), day=buildDay(key), lg=logOf(key), nm=nowMin();
   const eaten={cal:0,p:0,c:0,f:0};
-  for(const r of day.rows) if(r.items&&lg.done[r.id]) for(const k in eaten) eaten[k]+=r.m[k];
+  for(const r of day.rows) if(r.items&&isLogged(lg,r.id)) for(const k in eaten) eaten[k]+=r.m[k];
   const tg={cal:S.macros.cal,p:S.macros.p,c:carbsOf(S.macros),f:S.macros.f};
   const check=day.rows.filter(r=>r.items);
-  const next=check.find(r=>!lg.done[r.id]&&r.t+60>=nm)||null;
+  const next=check.find(r=>!isLogged(lg,r.id)&&r.t+60>=nm)||null;
   const nowRow=[...day.rows].reverse().find(r=>r.t<=nm)?.id;
   const h=new Date().getHours(), greet=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
-  const allDone=check.every(r=>lg.done[r.id]);
+  const allDone=check.every(r=>isLogged(lg,r.id));
   const bottles=Math.max(4,Math.round(Math.min(100,curWeight()/2)/16));
   const streak=calcStreak();
   const gd=goalDate();
   const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
-  const closeT=day.rows.find(r=>r.id==='close').t;
-  const missed=check.filter(r=>!lg.done[r.id]&&r.t+60<nm&&r!==next);
-  const missedHtml=missed.length?`<div style="margin-top:14px;padding-top:12px;border-top:1px solid color-mix(in srgb,var(--accent) 20%,transparent)"><div class="tiny muted" style="margin-bottom:8px">Ate these earlier? Tap to check them off.</div><div class="pills" style="margin:0">${missed.map(r=>`<button class="chip" style="height:32px;padding:0 12px" data-a="check" data-k="${key}" data-id="${r.id}">+ ${esc(r.label||r.title)}</button>`).join('')}</div></div>`:'';
   let hero;
   if(next){
     hero=`<div class="card hero">
       <div class="when">${next.t<=nm?'Now':'Up next'} · ${tfmt(next.t)}${next.label?` · ${next.label}`:''}</div>
       <h2>${esc(next.title)}</h2>
-      <div style="margin-top:8px">${detail(next,key,true)}</div>${missedHtml}</div>`;
+      <div style="margin-top:8px">${detail(next,key,true)}</div></div>`;
   } else if(allDone){
     hero=`<div class="card hero"><div class="when">All done</div><h2>You nailed today.</h2><p class="muted small" style="margin:6px 0 0">Kitchen’s closed — water or herbal tea only. See you tomorrow.</p></div>`;
   } else {
-    hero=`<div class="card hero"><div class="when">Kitchen closed · ${tfmt(day.rows.find(r=>r.id==='close').t)}</div><h2>Rest up.</h2><p class="muted small" style="margin:6px 0 0">Water or herbal tea only from here.</p>${missedHtml}</div>`;
+    hero=`<div class="card hero"><div class="when">Kitchen closed · ${tfmt(day.rows.find(r=>r.id==='close').t)}</div><h2>Rest up.</h2><p class="muted small" style="margin:6px 0 0">Water or herbal tea only from here. Missed logging something? Tap it below.</p></div>`;
   }
   const bar=(k,label,color)=>`<div><div class="lbl"><span><i class="dot" style="background:${color}"></i>${label}</span></div><div class="bar"><i style="width:${Math.min(100,eaten[k]/tg[k]*100)}%;background:${color}"></i></div><div class="tiny muted" style="margin-top:6px"><b>${Math.round(eaten[k])}</b> / ${tg[k]}g</div></div>`;
   return `
@@ -753,7 +773,7 @@ function viewToday(){
     <div class="water">${Array.from({length:bottles},(_,i)=>`<button aria-label="bottle ${i+1}" class="${i<lg.water?'on':''}" data-a="water" data-v="${i+1}"></button>`).join('')}</div>
   </div>
   <h2 style="margin:22px 0 0">Today’s plan</h2>
-  <p class="small muted" style="margin:2px 0 0">Tap a meal to see exactly what to measure.</p>
+  <p class="small muted" style="margin:2px 0 0">Tap a meal to see what to measure. Tap the circle to log it.</p>
   ${timeline(day,true,nowRow)}
   <p class="tiny muted" style="text-align:center">Planned total: ${fmtN(day.totals.cal)} cal · ${Math.round(day.totals.p)}g protein · ${Math.round(day.totals.c)}g carbs · ${Math.round(day.totals.f)}g fat</p>
   <button class="btn block" data-a="copyDay" data-k="${key}">Copy today’s list for my macro app</button>`;
@@ -838,22 +858,41 @@ function viewWeek(){
     body=`<div class="seg" style="margin-top:0">${[[0,'This week'],[1,'Next week']].map(([k,l])=>`<button data-a="shopWeek" data-v="${k}" class="${UI.shopWeek===k?'on':''}">${l}</button>`).join('')}</div>
     <div class="row between" style="gap:10px"><p class="small muted" style="margin:0">${fmtDate(ws)} – ${fmtDate(addDays(ws,6))}. Sized to your exact portions${S.family>1?`, with dinners for ${S.family}`:''}.</p><button class="btn" style="height:36px;padding:0 14px;flex:none" data-a="shareShop" data-w="${UI.shopWeek}">Share</button></div>
     <div class="card row between" style="padding:12px 18px"><span class="small"><b>${done}</b> of ${all.length} checked</span><button class="btn ghost" style="height:32px;padding:0 4px" data-a="shopReset" data-w="${wk}">Reset</button></div>
-    ${secs.map(sec=>`<div class="card"><h3>${sec.name}</h3><ul class="list">${sec.items.map(i=>`<li class="tap ${got[i.key]?'got':''}" data-a="shop" data-w="${wk}" data-v="${esc(i.key)}"><div class="grow">${esc(i.n)}</div>${i.q?`<b class="small qty">${esc(i.q)}</b>`:''}<span class="check ${got[i.key]?'on':''}">${ICON.check}</span></li>`).join('')}</ul></div>`).join('')}`;
+    ${secs.map(sec=>`<div class="card"><h3>${sec.name}</h3><ul class="list">${sec.items.map(i=>`<li class="tap ${got[i.key]?'got':''}" data-a="shop" data-w="${wk}" data-v="${esc(i.key)}"><div class="grow">${esc(i.n)}${i.u?`<div class="tiny muted">For ${esc(i.u.length>3?i.u.slice(0,3).join(' · ')+` +${i.u.length-3} more`:i.u.join(' · '))}</div>`:''}</div>${i.q?`<b class="small qty">${esc(i.q)}</b>`:''}<span class="check ${got[i.key]?'on':''}">${ICON.check}</span></li>`).join('')}</ul></div>`).join('')}`;
   } else {
-    const tip=t=>`<li><div class="grow small">${t}</div></li>`;
-    body=`<div class="card"><h3>The big idea</h3><p class="small" style="margin:6px 0 0">Cook dinner, then pack one extra portion right away — that’s tomorrow’s lunch. Cook once, eat twice.</p></div>
-    <div class="card"><h3>Sunday · about 45 minutes</h3><ul class="list">
-      ${['Get the beef roast in the oven — it’s tonight’s dinner and Monday’s lunch.','Bake 6 sweet potatoes alongside it (400°F, 45–60 min).','Brown 1 lb ground turkey for this week’s breakfasts.','Cook a pot of lentils for Tuesday and Saturday.','Hard-boil 6 eggs for morning snacks.'].map(tip).join('')}</ul></div>
-    <div class="card"><h3>Wednesday · 15 minutes</h3><ul class="list">
-      ${['Bake 4 more sweet potatoes.','Brown more turkey if you’re running low.','Cut up fruit for the rest of the week.'].map(tip).join('')}</ul></div>
-    <div class="card"><h3>Good to know</h3><ul class="list">
-      ${['Use a kitchen scale set to grams — it’s the easiest way to be exact.','Meat and fish amounts are <b>cooked</b> weight. Weigh after cooking.','Cook only in butter, olive oil, tallow or coconut oil.','Veggies are always cooked — never raw. No spinach or kale.','Log each item in your macro app using the exact grams shown.','Swapped a dinner? Swap tomorrow’s lunch to match the leftovers.'].map(tip).join('')}</ul></div>`;
+    body=prepView();
   }
   return `<div class="eyebrow">Your week</div><h1>Sun – Sat plan</h1>${seg}${body}`;
 }
+function prepView(){
+  const ws=weekStart(0), days=[...Array(8)].map((_,i)=>buildDay(dKey(addDays(ws,i))));
+  const D3=i=>DOW[i%7].slice(0,3), row=(i,id)=>days[i].rows.find(r=>r.id===id);
+  const main=r=>{const it=r.items.find(x=>F[x.fid].ck);return it&&it.fid;};
+  const leftover=i=>main(row(i,'d'))&&main(row(i,'d'))===main(row(i+1,'l'));
+  // what uses a food this week, as "Meal (Sun, Tue)"
+  const usedBy=test=>{const m=new Map();for(let i=0;i<7;i++)for(const r of days[i].rows)if(r.items&&r.items.some(it=>test(it,r))){const t=shortOf(r);(m.get(t)||m.set(t,[]).get(t)).push(D3(i));}
+    return [...m].map(([t,d])=>`${esc(t)} (${d.join(', ')})`);};
+  const grams=test=>{let g=0;for(let i=0;i<7;i++)for(const r of days[i].rows)if(r.items)for(const it of r.items)if(test(it,r))g+=it.q;return g;};
+  const batch=[];
+  const tk=usedBy(it=>it.fid==='turkey'); if(tk.length) batch.push(`<b>Brown ${lbs(grams(it=>it.fid==='turkey')/.75)} ground turkey</b><div class="tiny muted">For ${tk.join(', ')}</div>`);
+  const boiled=(it,r)=>it.fid==='egg'&&['S1a','S1e','BF'].includes(r.rk);
+  const be=usedBy(boiled); if(be.length) batch.push(`<b>Hard-boil ${grams(boiled)} eggs</b><div class="tiny muted">For ${be.join(', ')}</div>`);
+  const le=usedBy(it=>it.fid==='lentils'); if(le.length) batch.push(`<b>Cook a pot of lentils</b><div class="tiny muted">For ${le.join(', ')}</div>`);
+  const nSp=days.slice(0,7).reduce((n,d)=>n+d.rows.filter(r=>r.items&&r.items.some(it=>it.fid==='sweetPotato')).length,0);
+  if(nSp) batch.push(`<b>Bake ${SH.sweetPotato.q(grams(it=>it.fid==='sweetPotato')/2).replace(/ \(.*\)/,'')} of sweet potatoes</b><div class="tiny muted">For ${nSp} meals this week. Bake the second half on Wednesday.</div>`);
+  const fr2=usedBy(it=>it.fid==='pineapple'||it.fid==='watermelon'); if(fr2.length) batch.push(`<b>Cut up the pineapple & watermelon</b><div class="tiny muted">For ${fr2.slice(0,3).join(', ')}${fr2.length>3?' and more':''}</div>`);
+  const nights=[...Array(7)].map((_,i)=>{const d=row(i,'d'), l=row(i,'l'), fresh=!(i>0&&leftover(i-1))&&!(i===0&&main(l)==='roastChicken');
+    return `<li><div class="grow"><div class="small"><b>${D3(i)}</b> · ${esc(d.title)}</div>
+      ${leftover(i)?`<div class="tiny muted">Cook extra → tomorrow’s lunch: ${esc(row(i+1,'l').title)}</div>`:''}
+      ${fresh?`<div class="tiny muted">Lunch today is cooked fresh: ${esc(l.title)}</div>`:''}</div></li>`;}).join('');
+  return `<div class="card"><h3>Sunday batch · about 45 min</h3><ul class="list">${batch.map(b=>`<li><div class="grow small">${b}</div></li>`).join('')}</ul></div>
+    <div class="card"><h3>Each night</h3><p class="small muted" style="margin:4px 0 0">Cook dinner and pack one extra portion — that’s tomorrow’s lunch.</p><ul class="list">${nights}</ul></div>
+    <div class="card"><h3>Good to know</h3><ul class="list">
+      ${['Weigh meat and fish <b>after</b> cooking, in grams.','Cook only in butter, olive oil, tallow or coconut oil.','Swapped a dinner? Swap tomorrow’s lunch to match.'].map(t=>`<li><div class="grow small">${t}</div></li>`).join('')}</ul></div>`;
+}
 function calcStreak(){
   let n=0, d=today();
-  const full=k=>{const day=buildDay(k),lg=S.log[k];return lg&&day.rows.filter(r=>r.type==='meal').every(r=>lg.done[r.id]);};
+  const full=k=>{const day=buildDay(k),lg=S.log[k];return lg&&day.rows.filter(r=>r.type==='meal').every(r=>isLogged(lg,r.id));};
   if(!full(dKey(d))) d=addDays(d,-1);
   while(S.log[dKey(d)]&&full(dKey(d))&&n<999){n++;d=addDays(d,-1);}
   return n;
@@ -998,6 +1037,44 @@ function openSwap(key,slot){
     <ul class="list">${POOL[slot].map(k=>`<li><button class="grow" style="text-align:left;padding:4px 0" data-a="pick" data-k="${key}" data-s="${slot}" data-v="${k}">${esc(name(k))}${k===WEEK[slot][pKey(key).getDay()]?' <span class="tiny muted">· usual</span>':''}</button>${k===cur?'<span class="chip">Current</span>':''}</li>`).join('')}</ul>`;
   $('#sheet').classList.add('show');$('#scrim').classList.add('show');
 }
+function unitOf(fid){const f=F[fid];
+  if(f.extra||f.herb||fid==='water') return null;
+  if(f.u) return {lab:fid==='egg'?'eggs':f.us,step:fid==='egg'?1:.25,to:q=>q,from:v=>v};
+  if(f.tsp) return {lab:'tsp',step:.5,to:q=>+(q/f.tsp).toFixed(2),from:v=>v*f.tsp};
+  if(f.ml) return {lab:'cups',step:.25,to:q=>+(q/240).toFixed(2),from:v=>v*240};
+  if(f.oz) return {lab:'oz',step:1,to:q=>q,from:v=>v};
+  return {lab:'g',step:5,to:q=>Math.round(q),from:v=>v};
+}
+function openLog(key,id,keep){
+  const r=buildDay(key).rows.find(x=>x.id===id), lg=logOf(key);
+  if(!keep) UI.logCtx={key,id,x:[...((lg.ate&&lg.ate[id]&&lg.ate[id].x)||[])],vals:{}};
+  const c=UI.logCtx, foods=r.items.filter(it=>!F[it.fid].extra);
+  const rows=foods.map((it,i)=>{const u=unitOf(it.fid); if(!u) return '';
+    return `<li><span>${esc(F[it.fid].n)}</span><span class="row" style="gap:6px"><input class="num" type="number" inputmode="decimal" min="0" step="${u.step}" data-li="${i}" value="${c.vals[i]??u.to(it.q)}"><small class="muted unit">${u.lab}</small></span></li>`;}).join('');
+  const extras=c.x.map(x=>`<li><span>${esc(x.n)} <small class="muted">· ${fmtN(+x.cal||0)} cal</small></span><button class="btn ghost" style="height:30px;padding:0 4px" data-a="rmExtra" data-v="${x.id}" aria-label="remove">✕</button></li>`).join('');
+  const fld=(id,ph,type='number')=>`<label class="xl">${ph}<input id="${id}" type="${type}" ${type==='number'?'inputmode="decimal" min="0" placeholder="0"':'placeholder="e.g. a banana"'} class="xin"></label>`;
+  $('#sheet').innerHTML=`<div class="grab"></div><h2>${esc(r.title)}</h2>
+    <p class="small muted" style="margin:0 0 6px">Your planned amounts are filled in. Change anything that was different, or put 0 if you skipped it.</p>
+    <ul class="ing logl">${rows}${extras}</ul>
+    <div id="xform" class="xform" hidden>
+      <div class="small" style="font-weight:600;margin-bottom:8px">Something else you ate</div>
+      ${fld('xn','What was it?','text')}
+      <div class="xgrid">${fld('xcal','Calories')}${fld('xp','Protein (g)')}${fld('xc','Carbs (g)')}${fld('xf','Fat (g)')}</div>
+    </div>
+    <button class="btn ghost block" id="xbtn" data-a="showX">+ Add something else</button>
+    <div class="actions"><button class="btn primary" data-a="saveLog">Save</button></div>
+    ${isLogged(lg,id)?`<button class="btn ghost block" style="margin-top:6px" data-a="unlog">I didn’t eat this</button>`:''}`;
+  $('#sheet').classList.add('show');$('#scrim').classList.add('show');
+}
+function readLogVals(){document.querySelectorAll('#sheet [data-li]').forEach(el=>{UI.logCtx.vals[el.dataset.li]=el.value;});}
+function saveLog(){
+  const c=UI.logCtx, r=buildDay(c.key).rows.find(x=>x.id===c.id), lg=logOf(c.key);
+  const items=r.items.filter(it=>!F[it.fid].extra).map((it,i)=>{const u=unitOf(it.fid), el=$(`#sheet [data-li="${i}"]`);
+    let q=it.q; if(u&&el){const v=parseFloat(el.value); if(isFinite(v)&&v>=0) q=u.from(v);} return [it.fid,+q.toFixed(2)];});
+  const xn=$('#xn'), xcal=$('#xcal');
+  if(xn&&(xn.value.trim()||+xcal.value)) c.x.push({id:'_x'+Date.now(),n:xn.value.trim()||'Something else',cal:+xcal.value||0,p:+$('#xp').value||0,c:+$('#xc').value||0,f:+$('#xf').value||0});
+  lg.ate=lg.ate||{}; lg.ate[c.id]={rk:r.rk||null,items,x:c.x}; lg.done[c.id]=true; save();
+}
 function closeSheet(){$('#sheet').classList.remove('show');$('#scrim').classList.remove('show');}
 
 function renderOb(){
@@ -1061,8 +1138,11 @@ document.addEventListener('click',e=>{
   switch(a){
     case 'tab': UI.tab=v; UI.open=null; window.scrollTo(0,0); break;
     case 'open': UI.open=UI.open===v?null:v; break;
-    case 'check': {const lg=logOf(el.dataset.k);lg.done[el.dataset.id]=!lg.done[el.dataset.id];
-      if(lg.done[el.dataset.id]){toast('Nice — logged'); if(navigator.vibrate) navigator.vibrate(10);} save(); break;}
+    case 'log': openLog(el.dataset.k,el.dataset.id); return;
+    case 'showX': $('#xform').hidden=false; $('#xbtn').hidden=true; $('#xn').focus(); return;
+    case 'rmExtra': readLogVals(); UI.logCtx.x=UI.logCtx.x.filter(x=>x.id!==v); openLog(UI.logCtx.key,UI.logCtx.id,true); return;
+    case 'saveLog': saveLog(); closeSheet(); toast(UI.logCtx.key===dKey(today())?'Logged — the rest of today re-balanced':'Logged'); if(navigator.vibrate) navigator.vibrate(10); break;
+    case 'unlog': {const lg=logOf(UI.logCtx.key); if(lg.ate) delete lg.ate[UI.logCtx.id]; delete lg.done[UI.logCtx.id]; save(); closeSheet(); break;}
     case 'water': {const lg=logOf(dKey(today()));lg.water=lg.water===+v?+v-1:+v;save();break;}
     case 'swap': openSwap(el.dataset.k,el.dataset.s); return;
     case 'pick': {const k=el.dataset.k;S.swaps[k]=S.swaps[k]||{};
