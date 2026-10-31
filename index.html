@@ -199,7 +199,7 @@ const F = {
   turkey:{n:'Ground turkey, 93% lean',ck:.75,cal:200,p:26,c:0,f:10.4,a:'m'},
   beef90:{n:'Ground beef, 90% lean',ck:.72,cal:217,p:26.1,c:0,f:11.8,a:'m'},
   beef93:{n:'Ground beef, 93% lean',ck:.72,cal:185,p:26.5,c:0,f:8.5,a:'m'},
-  sirloin:{n:'Sirloin steak',ck:.75,cal:180,p:29,c:0,f:6.8,a:'m'},
+  sirloin:{n:'Sirloin steak',ck:.75,cal:206,p:29.2,c:0,f:9.1,a:'m'},
   chicken:{n:'Chicken breast',ck:.75,cal:165,p:31,c:0,f:3.6,a:'m'},
   gchicken:{n:'Ground chicken',ck:.75,cal:189,p:23.3,c:0,f:10.9,a:'m'},
   pork:{n:'Pork tenderloin',ck:.75,cal:143,p:26.2,c:0,f:3.5,a:'m'},
@@ -270,25 +270,25 @@ const F = {
    ============================================================ */
 const R = {
   // Breakfasts — 30 g+ protein, 10 g+ fat, low carb (first two alternate all week)
-  BA:{n:'Scrambled Eggs & Turkey',items:[['egg',2,'p',2,3],['turkey',80,'p',70,150],['butter',4.7,'f',2.35,14],['onionPowder',1,'x']],
+  BA:{n:'Scrambled Eggs & Turkey',items:[['egg',2,'p',2,3],['turkey',100,'p',85,160],['butter',4.7,'f',4.7,14],['onionPowder',1,'x']],
     how:'Brown the turkey in butter with a sprinkle of onion & garlic powder. Scramble the eggs right in.',
     why:'Eggs are full of choline, which helps your liver move fat out.'},
-  BB:{n:'Steak & Eggs',items:[['egg',2,'p',2,3],['sirloin',90,'p',65,160],['butter',4.7,'f',2.35,14],['salt',1,'x']],
+  BB:{n:'Steak & Eggs',items:[['egg',2,'p',2,3],['sirloin',115,'p',100,175],['butter',4.7,'f',4.7,14],['salt',1,'x']],
     how:'Sear the steak in butter, then let it rest. Fry or scramble the eggs in the same pan.',
     why:'A big protein breakfast keeps you full and steady until lunch.'},
-  BC:{n:'Salmon & Eggs',items:[['egg',2,'p',2,3],['salmon',85,'p',60,150],['butter',4.7,'f',2.35,14],['lemon',.25,'x']],
+  BC:{n:'Salmon & Eggs',items:[['egg',2,'p',2,3],['salmon',100,'p',85,160],['butter',4.7,'f',4.7,14],['lemon',.25,'x']],
     how:'Warm leftover salmon in butter and scramble the eggs. Squeeze lemon over the top.',
     why:'Salmon’s omega-3s help lower liver fat.'},
-  BD:{n:'Chicken Patties & Eggs',items:[['gchicken',90,'p',70,150],['egg',2,'p',2,3],['oliveOil',4.5,'f',2.25,13.5],['basil',1,'x']],
+  BD:{n:'Chicken Patties & Eggs',items:[['gchicken',100,'p',85,160],['egg',2,'p',2,3],['oliveOil',4.5,'f',4.5,13.5],['basil',1,'x']],
     how:'Mix ground chicken with chopped basil, salt and pepper. Form small patties and cook in olive oil. Cook the eggs in the same pan.',
     why:'Homemade patties — all the protein, none of the packaged extras.'},
-  BE:{n:'Bacon & Eggs',items:[['egg',3,'p',3,4],['eggWhites',100,'p',60,200],['bacon',2,'x'],['butter',2.35,'f',0,9.4]],
+  BE:{n:'Bacon & Eggs',items:[['egg',3,'p',3,4],['eggWhites',100,'p',60,200],['bacon',2,'x'],['butter',4.7,'f',4.7,9.4]],
     how:'Cook bacon until crisp. Scramble the eggs and egg whites in a little butter.',
     why:'Pick uncured bacon with no sugar added, and keep it to a couple of slices.'},
-  BF:{n:'Greek Yogurt & Kiwi + Boiled Eggs',items:[['greekYogurt',200,'p',150,300],['kiwi',75,'x'],['egg',2,'x'],['cinnamon',1,'x']],
+  BF:{n:'Greek Yogurt & Kiwi + Boiled Eggs',items:[['greekYogurt',220,'p',200,300],['kiwi',75,'x'],['egg',2,'x'],['cinnamon',1,'x']],
     how:'Top yogurt with sliced kiwi and a sprinkle of cinnamon. Peel two hard-boiled eggs.',
     why:'No cooking needed. A little higher in carbs than your egg breakfasts.'},
-  BG:{n:'Kefir & Pineapple + Scrambled Eggs',items:[['egg',3,'p',3,4],['kefir',240,'x'],['pineapple',80,'x'],['butter',2.35,'f',2.35,9.4]],
+  BG:{n:'Kefir & Pineapple + Scrambled Eggs',items:[['egg',3,'p',3,4],['kefir',240,'x'],['pineapple',80,'x'],['butter',4.7,'f',4.7,9.4]],
     how:'Scramble the eggs in butter. Drink the kefir with pineapple on the side.',
     why:'Kefir’s good bacteria support your gut — and your liver.'},
   // Morning snacks — light and low carb
@@ -308,63 +308,63 @@ const R = {
     how:'Peel two hard-boiled eggs and add a pinch of salt.',
     why:'Zero carbs and easy to grab.'},
   // Lunches — mostly last night's dinner, so you cook once and eat twice
-  LSoup:{n:'Chicken Bone Broth Soup',items:[['roastChicken',110,'p',80,180],['brothC',360,'x'],['celeryCarrot',150,'x'],['sweetPotato',100,'c',50,300],['oliveOil',2.25,'f',0,13.5],['rosemary',1,'x']],
+  LSoup:{n:'Chicken Bone Broth Soup',items:[['roastChicken',110,'p',90,180],['brothC',360,'x'],['celeryCarrot',150,'x'],['sweetPotato',100,'c',50,300],['oliveOil',4.5,'f',4.5,13.5],['rosemary',1,'x']],
     how:'Simmer broth with celery, carrots and cubed sweet potato for 15 min. Stir in leftover roast chicken and a sprinkle of thyme.',
     why:'Bone broth is gentle on your gut and adds extra protein.'},
-  LRoast:{n:'Leftover Roast Beef & Sweet Potato',items:[['beefRoast',110,'p',80,180],['sweetPotato',130,'c',75,300],['carrots',120,'x'],['butter',2.35,'f',0,14],['pineapple',120,'c',0,200]],
+  LRoast:{n:'Leftover Roast Beef & Sweet Potato',items:[['beefRoast',110,'p',90,180],['sweetPotato',130,'c',75,300],['carrots',120,'x'],['butter',4.7,'f',4.7,14],['pineapple',120,'c',0,200]],
     how:'Slice last night’s roast and warm it with sweet potato and cooked carrots. A little butter on the sweet potato. Pineapple on the side.',
     why:'Leftovers mean lunch is ready in 3 minutes.'},
-  LChLen:{n:'Lemon Chicken & Lentils',items:[['chicken',120,'p',80,200],['lentils',120,'c',60,260],['zucchini',150,'x'],['oliveOil',4.5,'f',0,20],['lemon',.5,'x'],['basil',1,'x'],['watermelon',150,'c',0,300]],
+  LChLen:{n:'Lemon Chicken & Lentils',items:[['chicken',120,'p',90,200],['lentils',120,'c',60,260],['zucchini',150,'x'],['oliveOil',4.5,'f',4.5,20],['lemon',.5,'x'],['basil',1,'x'],['watermelon',150,'c',0,300]],
     how:'Warm last night’s chicken with lentils and sautéed zucchini. Finish with olive oil, lemon and basil. Watermelon on the side.',
     why:'Lentils add fiber, which feeds the good gut bacteria that support your liver.'},
-  LBowl:{n:'Beef & Black Bean Bowl with Avocado',items:[['beef90',100,'p',70,170],['blackBeans',100,'c',60,200],['sweetPotato',120,'c',0,300],['pepperOnion',120,'x'],['avocado',35,'f',20,80],['lime',.5,'x'],['cilantro',1,'x']],
+  LBowl:{n:'Beef & Black Bean Bowl with Avocado',items:[['beef90',105,'p',90,170],['blackBeans',100,'c',60,200],['sweetPotato',120,'c',0,300],['pepperOnion',120,'x'],['avocado',35,'f',20,80],['lime',.5,'x'],['cilantro',1,'x']],
     how:'Warm last night’s beef and beans with peppers & onions. Add sweet potato. Top with avocado, cilantro and a squeeze of lime.',
     why:'Beans add fiber, which feeds the good gut bacteria that support your liver.'},
-  LSalmon:{n:'Salmon & Roasted Sweet Potato',items:[['salmon',110,'p',80,180],['sweetPotato',130,'c',75,300],['asparagus',120,'x'],['oliveOil',2.25,'f',0,14],['lemon',.25,'x'],['watermelon',150,'c',0,250]],
+  LSalmon:{n:'Salmon & Roasted Sweet Potato',items:[['salmon',110,'p',90,180],['sweetPotato',130,'c',75,300],['asparagus',120,'x'],['oliveOil',4.5,'f',4.5,14],['lemon',.25,'x'],['watermelon',150,'c',0,250]],
     how:'Warm last night’s extra salmon with roasted sweet potato and asparagus. Squeeze lemon over the top. Watermelon on the side.',
     why:'Two salmon meals a week is great for liver fat.'},
-  LSteak:{n:'Leftover Steak & Cooked Veggies',items:[['sirloin',110,'p',80,180],['mushOnion',120,'x'],['greenBeans',100,'x'],['blackBeans',90,'c',60,200],['butter',2.35,'f',0,14],['pineapple',100,'c',0,250]],
+  LSteak:{n:'Leftover Steak & Cooked Veggies',items:[['sirloin',110,'p',90,180],['mushOnion',120,'x'],['greenBeans',100,'x'],['blackBeans',90,'c',60,200],['butter',4.7,'f',4.7,14],['pineapple',100,'c',0,250]],
     how:'Slice last night’s steak and warm it with sautéed mushrooms & onions, green beans and black beans. Pineapple on the side.',
     why:'Red meat brings iron and B12 — great for energy.'},
-  LCod:{n:'Lemon Cod, Lentils & Zucchini',items:[['cod',170,'p',110,260],['lentils',130,'c',70,260],['zucchini',180,'x'],['oliveOil',4.5,'f',2.25,20],['feta',20,'x'],['basil',1,'x'],['lemon',.5,'x']],
-    how:'Bake cod at 400°F for 10–12 min with olive oil and lemon. Warm lentils with sautéed zucchini. Top with feta and basil.',
+  LCod:{n:'Lemon Cod, Lentils & Zucchini',items:[['cod',170,'p',110,260],['lentils',130,'c',70,260],['zucchini',180,'x'],['oliveOil',4.5,'f',4.5,20],['feta',20,'x'],['basil',1,'x'],['lemon',.5,'x'],['watermelon',150,'c',0,250]],
+    how:'Bake cod at 400°F for 10–12 min with olive oil and lemon. Warm lentils with sautéed zucchini. Top with feta and basil. Watermelon on the side.',
     why:'White fish is very lean, so there’s room for flavor from the feta.'},
   // Dinners — done by 6:30. Cook one extra portion: it’s tomorrow’s lunch.
-  DRoast:{n:'Beef Roast, Brussels Sprouts & Cauliflower',items:[['beefRoast',140,'p',90,230],['sweetPotato',130,'c',75,350],['brussels',120,'x'],['cauliflower',120,'x'],['tallow',4.3,'f',0,17],['rosemary',1,'x'],['garlic',1,'x']],
+  DRoast:{n:'Beef Roast, Brussels Sprouts & Cauliflower',items:[['beefRoast',140,'p',100,230],['sweetPotato',130,'c',75,350],['brussels',120,'x'],['cauliflower',120,'x'],['tallow',4.3,'f',4.3,17],['rosemary',1,'x'],['garlic',1,'x']],
     how:'Rub the roast with salt, garlic, rosemary and thyme. Sear in tallow, then roast at 325°F until 135°F inside (about 1½ hrs for 3 lb). Roast the Brussels sprouts and cauliflower alongside. Save the rest for tomorrow’s lunch.',
     why:'One roast = two meals. Easy Sunday.'},
-  DChicken:{n:'Baked Chicken, Asparagus & Sweet Potato',items:[['chicken',130,'p',90,220],['sweetPotato',150,'c',75,350],['asparagus',150,'x'],['oliveOil',4.5,'f',0,20],['paprika',1,'x']],
+  DChicken:{n:'Baked Chicken, Asparagus & Sweet Potato',items:[['chicken',130,'p',100,220],['sweetPotato',150,'c',75,350],['asparagus',150,'x'],['oliveOil',4.5,'f',4.5,20],['paprika',1,'x']],
     how:'Season chicken with paprika, garlic powder and salt. Bake at 425°F for 20–25 min with the asparagus. Bake extra — tomorrow’s lunch uses it.',
     why:'Lean protein, slow carbs, cooked greens — the classic.'},
-  DBeefBean:{n:'Ground Beef, Zucchini & Black Beans',items:[['beef90',120,'p',80,200],['blackBeans',120,'c',70,250],['zucchini',150,'x'],['pepperOnion',60,'x'],['tallow',2.15,'f',0,13],['kefir',60,'x'],['cilantro',1,'x'],['lime',.5,'x'],['cumin',1,'x']],
-    how:'Brown the beef in tallow with cumin & chili powder. Add zucchini, peppers & onion, then the beans. Top with cilantro and kefir stirred with lime (your “sour cream”). Make extra for tomorrow’s bowl.',
+  DBeefBean:{n:'Ground Beef, Zucchini & Black Beans',items:[['beef90',120,'p',100,200],['blackBeans',120,'c',70,250],['sweetPotato',80,'c',0,250],['zucchini',150,'x'],['pepperOnion',60,'x'],['tallow',4.3,'f',4.3,13],['kefir',60,'x'],['cilantro',1,'x'],['lime',.5,'x'],['cumin',1,'x']],
+    how:'Brown the beef in tallow with cumin & chili powder. Add zucchini, peppers & onion, then the beans and cubed sweet potato. Top with cilantro and kefir stirred with lime (your “sour cream”). Make extra for tomorrow’s bowl.',
     why:'Fiber + protein in one pan keeps you full all evening.'},
-  DSalmon:{n:'Salmon, Roasted Broccoli & Avocado',items:[['salmon',140,'p',90,220],['sweetPotato',120,'c',50,350],['broccoli',150,'x'],['avocado',50,'f',25,100],['coconutOil',4.5,'x'],['lemon',.5,'x']],
+  DSalmon:{n:'Salmon, Roasted Broccoli & Avocado',items:[['salmon',140,'p',100,220],['sweetPotato',120,'c',50,350],['broccoli',150,'x'],['avocado',50,'f',25,100],['coconutOil',4.5,'x'],['lemon',.5,'x']],
     how:'Roast broccoli and cubed sweet potato in coconut oil at 425°F for 20 min; add the salmon for the last 12 min. Serve with sliced avocado and lemon. Cook an extra fillet for tomorrow.',
     why:'Omega-3s in salmon are one of the best foods for a fatty liver.'},
-  DSteak:{n:'Steak, Green Beans & Sweet Potato',items:[['sirloin',140,'p',90,230],['sweetPotato',150,'c',75,350],['greenBeans',150,'x'],['butter',4.7,'f',0,20],['garlic',1,'x']],
+  DSteak:{n:'Steak, Green Beans & Sweet Potato',items:[['sirloin',140,'p',100,230],['sweetPotato',150,'c',75,350],['greenBeans',150,'x'],['butter',4.7,'f',4.7,20],['garlic',1,'x']],
     how:'Sear steak 3–4 min per side in butter and rest 5 min. Sauté green beans with garlic. Cook an extra steak for tomorrow’s lunch.',
     why:'Red meat brings iron and B12 — great for energy.'},
-  DShrimp:{n:'Garlic Butter Shrimp & Veggies',items:[['shrimp',160,'p',100,250],['blackBeans',100,'c',60,250],['broccoli',100,'x'],['pepperOnion',80,'x'],['butter',7,'f',2.35,20],['garlic',1,'x'],['lime',.5,'x'],['cilantro',1,'x']],
+  DShrimp:{n:'Garlic Butter Shrimp & Veggies',items:[['shrimp',160,'p',100,250],['blackBeans',100,'c',60,250],['broccoli',100,'x'],['pepperOnion',80,'x'],['butter',7,'f',4.7,20],['garlic',1,'x'],['lime',.5,'x'],['cilantro',1,'x']],
     how:'Melt butter with lots of garlic and cook shrimp 2–3 min per side. Sauté broccoli and peppers. Serve with warm black beans tossed with lime and cilantro.',
     why:'Shrimp is lean, quick protein — dinner in 15 minutes.'},
-  DRoastChicken:{n:'Roast Chicken, Carrots & Celery',items:[['roastChicken',140,'p',90,220],['sweetPotato',130,'c',75,350],['celeryCarrot',150,'x'],['brothC',240,'x'],['butter',4.7,'f',0,20],['rosemary',1,'x']],
+  DRoastChicken:{n:'Roast Chicken, Carrots & Celery',items:[['roastChicken',140,'p',100,220],['sweetPotato',130,'c',75,350],['celeryCarrot',150,'x'],['brothC',240,'x'],['butter',4.7,'f',4.7,20],['rosemary',1,'x']],
     how:'Rub a whole chicken with butter, salt, rosemary and thyme. Roast at 425°F for about 1¼ hrs with carrots, celery and sweet potato. Sip a cup of warm bone broth. Save the leftover chicken for tomorrow’s soup.',
     why:'A whole roast chicken covers tonight and tomorrow’s soup.'},
   // Extra choices for swaps
-  XPork:{n:'Pork Tenderloin & Warm Pineapple',items:[['pork',130,'p',90,220],['sweetPotato',130,'c',75,300],['pineapple',80,'c',40,200],['brussels',150,'x'],['coconutOil',4.5,'f',2.25,20],['cilantro',1,'x']],
+  XPork:{n:'Pork Tenderloin & Warm Pineapple',items:[['pork',130,'p',100,220],['sweetPotato',130,'c',75,300],['pineapple',80,'c',40,200],['brussels',150,'x'],['coconutOil',4.5,'f',4.5,20],['cilantro',1,'x']],
     how:'Roast pork at 400°F for 20–25 min. Sear pineapple chunks in coconut oil until golden. Roast Brussels sprouts. Serve with sweet potato.',
     why:'Pork tenderloin is as lean as chicken breast.'},
-  XChili:{n:'Chicken & Black Bean Chili',items:[['chicken',120,'p',80,200],['blackBeans',100,'c',70,250],['sweetPotato',100,'c',0,250],['tomatoes',120,'x'],['celeryCarrot',80,'x'],['brothC',240,'x'],['oliveOil',4.5,'f',2.25,20],['cilantro',1,'x'],['cumin',1,'x']],
+  XChili:{n:'Chicken & Black Bean Chili',items:[['chicken',120,'p',100,200],['blackBeans',100,'c',70,250],['sweetPotato',100,'c',0,250],['tomatoes',120,'x'],['celeryCarrot',80,'x'],['brothC',240,'x'],['oliveOil',4.5,'f',4.5,20],['cilantro',1,'x'],['cumin',1,'x']],
     how:'Sauté celery & carrots in olive oil. Add broth, tomatoes, beans, cubed sweet potato, shredded chicken, cumin & chili powder. Simmer 20 min. Top with cilantro.',
     why:'Fiber + protein in one bowl keeps you full all evening.'},
-  XBurger:{n:'Bunless Burger & Sweet Potato Fries',items:[['beef90',120,'p',80,200],['sweetPotato',150,'c',75,350],['mushOnion',120,'x'],['cheddar',21,'x'],['tallow',4.3,'f',2.15,17]],
+  XBurger:{n:'Bunless Burger & Sweet Potato Fries',items:[['beef90',120,'p',100,200],['sweetPotato',150,'c',75,350],['mushOnion',120,'x'],['cheddar',21,'x'],['tallow',4.3,'f',4.3,17]],
     how:'Roast sweet potato wedges in tallow at 425°F for 25 min. Pan-cook the burger. Top with cheese and sautéed mushrooms & onions.',
     why:'Burger night, real-food version — no bun needed.'},
-  XSoup:{n:'Beef & Lentil Soup',items:[['beef93',100,'p',70,170],['lentils',100,'c',60,250],['sweetPotato',80,'c',0,250],['celeryCarrot',120,'x'],['brothB',240,'x'],['oliveOil',4.5,'f',2.25,20],['garlic',1,'x'],['turmeric',1,'x']],
+  XSoup:{n:'Beef & Lentil Soup',items:[['beef93',115,'p',100,175],['lentils',100,'c',60,250],['sweetPotato',80,'c',0,250],['celeryCarrot',120,'x'],['brothB',240,'x'],['oliveOil',4.5,'f',4.5,20],['garlic',1,'x'],['turmeric',1,'x']],
     how:'Brown beef with garlic in olive oil. Add broth, celery, carrots, cubed sweet potato, cooked lentils and a pinch of turmeric. Simmer 15 min.',
     why:'Bone broth is gentle on your gut and adds extra protein.'},
-  XCoconutShrimp:{n:'Coconut-Lime Shrimp Skillet',items:[['shrimp',150,'p',100,250],['sweetPotato',150,'c',75,350],['broccoli',120,'x'],['pepperOnion',60,'x'],['coconutOil',4.5,'f',2.25,20],['coconutFlakes',5,'x'],['lime',.5,'x'],['cilantro',1,'x']],
+  XCoconutShrimp:{n:'Coconut-Lime Shrimp Skillet',items:[['shrimp',150,'p',100,250],['sweetPotato',150,'c',75,350],['broccoli',120,'x'],['pepperOnion',60,'x'],['coconutOil',4.5,'f',4.5,20],['coconutFlakes',5,'x'],['lime',.5,'x'],['cilantro',1,'x']],
     how:'Cook shrimp in coconut oil 2–3 min per side. Add broccoli, peppers and cubed sweet potato. Finish with lime, cilantro and toasted coconut.',
     why:'Shrimp is lean, quick protein — dinner in 15 minutes.'}
 };
@@ -645,7 +645,7 @@ function buildDay(key){
   const Rm={p:tgt.p-fx.p,c:tgt.c-fx.c,f:tgt.f-fx.f};
   const fixedOf=m=>sumMac(m.items.filter(i=>i.role==='x'));
   const MT={}, got=slot=>{const m=meals.find(x=>x.slot===slot);return m&&m.done?sumMac(m.items):null;};
-  MT.b=got('b')||{p:clamp(Rm.p*.2,33,40),c:6,f:Math.max(13,Rm.f*.25)};
+  MT.b=got('b')||{p:clamp(Rm.p*.25,38,48),c:2,f:Math.max(18,Rm.f*.28)};
   const s1=meals.find(m=>m.slot==='s1'); if(s1) MT.s1=sumMac(s1.items);
   const sh=fixedOf(meals.find(m=>m.slot==='s2'));
   MT.s2=got('s2')||{p:sh.p+1,c:sh.c+Rm.c*.12,f:sh.f};
@@ -741,7 +741,8 @@ function logOf(key){return S.log[key]||(S.log[key]={done:{},water:0});}
 function isLogged(lg,id){return !!((lg.ate&&lg.ate[id])||(lg.done&&lg.done[id]));}
 const macroText=m=>`${fmtN(m.cal)} cal · ${Math.round(m.p)}g protein · ${Math.round(m.c)}g carbs · ${Math.round(m.f)}g fat`;
 function mline(m){return `<div class="mline"><span><b>${fmtN(m.cal)}</b> cal</span><span><i class="dot" style="background:var(--pro)"></i>Protein <b>${Math.round(m.p)}g</b></span><span><i class="dot" style="background:var(--carb)"></i>Carbs <b>${Math.round(m.c)}g</b></span><span><i class="dot" style="background:var(--fat)"></i>Fat <b>${Math.round(m.f)}g</b></span></div>`;}
-function ingList(items,ctx){return `<ul class="ing">${items.filter(i=>i.fid!=='water'||i.q>0).map(i=>{const a=amt(i.fid,i.q), from=i.orig||i.fid, can=ctx&&groupOf(from);
+function ingList(items,ctx){return `<ul class="ing">${items.filter(i=>i.fid!=='water'||i.q>0).map(i=>{const a=amt(i.fid,i.q), from=i.orig||i.fid, can=ctx&&groupOf(from), kc=Math.round(mac(i.fid,i.q).cal);
+  if(kc>=5) a.sub=(a.sub?a.sub+' · ':'')+kc+' cal';
   const nm=`${esc(F[i.fid].n)}${i.orig?`<small class="swapped">instead of ${esc(F[i.orig].n.replace(/, (cooked|baked)$/,''))}</small>`:''}`;
   return `<li>${can?`<button class="ingb" data-a="subIng" data-k="${ctx.key}" data-s="${ctx.slot}" data-v="${from}">${nm}<span class="sw" aria-label="swap">⇄</span></button>`:`<span>${nm}</span>`}<span class="amt">${a.main}${a.sub?`<small>${a.sub}</small>`:''}</span></li>`;}).join('')}</ul>`;}
 function openSubIng(key,slot,from){
